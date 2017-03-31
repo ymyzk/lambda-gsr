@@ -1,6 +1,6 @@
-# gsrinfer
+# lambda-gsr
 
-[![Build Status](https://travis-ci.org/ymyzk/gsrinfer.svg?branch=master)](https://travis-ci.org/ymyzk/gsrinfer)
+[![Build Status](https://travis-ci.org/ymyzk/lambda-gsr.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-gsr)
 
 A type reconstruction algorithm implementation for the implicitly and gradually typed language with shift and reset.
 
