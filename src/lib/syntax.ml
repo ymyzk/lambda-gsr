@@ -46,3 +46,17 @@ module Environment = Map.Make (
     let compare (x : id) y = compare x y
   end
 )
+
+module CSR = struct
+  type exp =
+    | Var of id
+    | Const of const
+    | BinOp of binop * exp * exp
+    | Fun of id * ty * exp
+    | App of exp * exp
+    | Shift of id * ty * exp
+    | Reset of exp
+    | If of exp * exp * exp
+    | Consq of exp * exp
+    | Cast of exp * ty * ty
+end
