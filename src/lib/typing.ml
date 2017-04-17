@@ -60,12 +60,6 @@ let rec tyvars = function
 type substitution = tyvar * ty
 type substitutions = substitution list
 
-let string_of_substitution (x, t) =
-  Printf.sprintf "x%d=%s" x @@ string_of_type t
-
-let string_of_substitutions s =
-  String.concat ", " @@ List.map string_of_substitution s
-
 let subst_type_substitutions (t : ty) (s : substitutions) =
   List.fold_left (fun u -> fun (x, t) -> subst_type x t u) t s
 
@@ -340,7 +334,7 @@ let unify constraints : substitutions =
           let s = unify @@ subst_type_constraints x t c in
           (x, t) :: s
       | _ ->
-          raise @@ Type_error ("cannot unify: " ^ (string_of_constr constr))
+          raise @@ Type_error ("cannot unify: " ^ (Pp.string_of_constr constr))
     end
   in
   unify @@ map_constraints (fun x -> x) constraints

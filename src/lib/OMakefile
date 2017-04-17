@@ -89,6 +89,7 @@ FILES[] =
     constraints
     lexer
     parser
+    pp
     syntax
     typing
     utils

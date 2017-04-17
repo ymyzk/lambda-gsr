@@ -7,7 +7,7 @@ let rec read_type_print () =
   try
     let empty = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main @@ Lexing.from_channel stdin in
-    print_endline @@ sprintf "- : %s" @@ Syntax.string_of_type @@ Typing.type_of_exp empty e;
+    print_endline @@ sprintf "- : %s" @@ Pp.string_of_type @@ Typing.type_of_exp empty e;
     read_type_print ()
   with
   | Failure message ->

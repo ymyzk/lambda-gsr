@@ -14,13 +14,6 @@ module Constraints = Set.Make(
 let map_constraints f c =
   Constraints.fold (fun x l -> (f x) :: l) c []
 
-let string_of_constr = function
-  | ConstrEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)
-  | ConstrConsistent (u1, u2) -> (string_of_type u1) ^ "~" ^ (string_of_type u2)
-
-let string_of_constraints c =
-  String.concat ", " @@ map_constraints string_of_constr c
-
 (* [x:=t]u *)
 let rec subst_type (x : tyvar) (t : ty) = function
   | TyFun (u1, u2, u3, u4) -> TyFun (subst_type x t u1, subst_type x t u2, subst_type x t u3, subst_type x t u4)
