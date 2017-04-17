@@ -1,5 +1,6 @@
 open Constraints
 open Syntax
+open GSR (* FIXME *)
 
 exception Type_error of string
 

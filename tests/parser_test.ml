@@ -1,6 +1,7 @@
 open OUnit2
 
 open Syntax
+open GSR
 
 let test_parse =
   let create_case (t, e) =

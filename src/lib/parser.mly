@@ -1,5 +1,6 @@
 %{
 open Syntax
+open GSR
 %}
 
 %token LPAREN RPAREN SEMI SEMISEMI COLON SLASH CARET
@@ -11,7 +12,7 @@ open Syntax
 %token <Syntax.id> ID
 
 %start toplevel
-%type <Syntax.exp> toplevel
+%type <Syntax.GSR.exp> toplevel
 
 %right RARROW
 %right SEMI
