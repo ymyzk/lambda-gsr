@@ -337,7 +337,7 @@ let unify constraints : substitutions =
           raise @@ Type_error ("cannot unify: " ^ (Pp.string_of_constr constr))
     end
   in
-  unify @@ map_constraints (fun x -> x) constraints
+  unify @@ Constraints.map (fun x -> x) constraints
 
 let type_of_exp env e =
   let u, a, c = generate_constraints env e in

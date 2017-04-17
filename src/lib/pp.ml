@@ -67,7 +67,7 @@ let string_of_constr = function
   | ConstrConsistent (u1, u2) -> (string_of_type u1) ^ "~" ^ (string_of_type u2)
 
 let string_of_constraints c =
-  String.concat ", " @@ map_constraints string_of_constr c
+  String.concat ", " @@ Constraints.map string_of_constr c
 
 let string_of_substitution (x, t) =
   Printf.sprintf "x%d=%s" x @@ string_of_type t

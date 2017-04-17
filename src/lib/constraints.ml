@@ -4,15 +4,18 @@ type constr =
   | ConstrEqual of ty * ty
   | ConstrConsistent of ty * ty
 
-module Constraints = Set.Make(
+module IConstraints = Set.Make (
   struct
     type t = constr
     let compare (x : constr) y = compare x y
   end
 )
 
-let map_constraints f c =
-  Constraints.fold (fun x l -> (f x) :: l) c []
+module Constraints = struct
+  include IConstraints
+
+  let map f c = IConstraints.fold (fun x l -> (f x) :: l) c []
+end
 
 (* [x:=t]u *)
 let rec subst_type (x : tyvar) (t : ty) = function
