@@ -27,13 +27,6 @@ type binop =
   | Mult
   | Div
 
-(* binop -> string *)
-let string_of_binop = function
-  | Plus -> "+"
-  | Minus -> "-"
-  | Mult -> "*"
-  | Div -> "/"
-
 type exp =
   | Var of id
   | Const of const

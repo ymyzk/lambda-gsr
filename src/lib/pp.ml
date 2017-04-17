@@ -2,6 +2,13 @@ open Constraints
 open Printf
 open Syntax
 
+(* binop -> string *)
+let string_of_binop = function
+  | Plus -> "+"
+  | Minus -> "-"
+  | Mult -> "*"
+  | Div -> "/"
+
 let string_of_type t =
   let params = ref [] in
   let string_of_typaram tp =
