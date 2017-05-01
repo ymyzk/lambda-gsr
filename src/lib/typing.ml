@@ -96,8 +96,47 @@ let rec tyvars = function
 type substitution = tyvar * ty
 type substitutions = substitution list
 
+(* [x:=t]u *)
+let rec subst_type (x : tyvar) (t : ty) = function
+  | TyFun (u1, u2, u3, u4) -> TyFun (subst_type x t u1, subst_type x t u2, subst_type x t u3, subst_type x t u4)
+  | TyVar x' when x = x' -> t
+  | _ as u -> u
+
+(* [x:=t]e *)
+let rec subst_exp x t = function
+  | BinOp (op, e1, e2) ->
+      BinOp (op, subst_exp x t e1, subst_exp x t e2)
+  | Fun (g, x1, x1_t, e) ->
+      Fun (subst_type x t g, x1, subst_type x t x1_t, subst_exp x t e)
+  | App (e1, e2) ->
+      App (subst_exp x t e1, subst_exp x t e2)
+  | Shift (k, k_t, e) ->
+      Shift (k, subst_type x t k_t, subst_exp x t e)
+  | Reset (e, u) ->
+      Reset (subst_exp x t e, subst_type x t u)
+  | If (e1, e2, e3) ->
+      If (subst_exp x t e1, subst_exp x t e2, subst_exp x t e3)
+  | Consq (e1, e2) ->
+      Consq (subst_exp x t e1, subst_exp x t e2)
+  | _ as e -> e
+
+(* [x:=t]c *)
+let rec subst_constraint x t = function
+  | ConstrEqual (u1, u2) -> ConstrEqual (subst_type x t u1, subst_type x t u2)
+  | ConstrConsistent (u1, u2) -> ConstrConsistent (subst_type x t u1, subst_type x t u2)
+
+(* [x:=t]C *)
+let rec subst_constraints x t (c : constr list) =
+  (* TODO: OK? *)
+  List.map (subst_constraint x t) c
+
+(* S(t) *)
 let subst_type_substitutions (t : ty) (s : substitutions) =
   List.fold_left (fun u -> fun (x, t) -> subst_type x t u) t s
+
+(* S(e) *)
+let subst_exp_substitutions e (s : substitutions) =
+  List.fold_left (fun u -> fun (x, t) -> subst_exp x t e) e s
 
 let fresh_typaram =
   let counter = ref 0 in
@@ -339,7 +378,7 @@ let unify constraints : substitutions =
       | ConstrEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
           unify @@ ConstrEqual (TyVar x, t) :: c
       | ConstrEqual (TyVar x, t) when not @@ Variables.mem x (tyvars t) ->
-          let s = unify @@ subst_type_constraints x t c in
+          let s = unify @@ subst_constraints x t c in
           (x, t) :: s
       | _ ->
           raise @@ Type_error ("cannot unify: " ^ (Pp.string_of_constr constr))
@@ -350,9 +389,12 @@ let unify constraints : substitutions =
 let infer env e b =
   let u, a, c = generate_constraints env e b in
   let s = unify c in
+  let e = subst_exp_substitutions e s in
   let u = subst_type_substitutions u s in
-  let a = subst_type_substitutions u s in
-  subst_tyvars u, subst_tyvars a
+  let a = subst_type_substitutions a s in
+  let b = subst_type_substitutions b s in
+  (* TODO replace type vars in e *)
+  e, subst_tyvars u, subst_tyvars a, subst_tyvars b
 
 module GSR = struct
   open Syntax

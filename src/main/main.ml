@@ -7,8 +7,11 @@ let rec read_type_print () =
   try
     let env = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main @@ Lexing.from_channel stdin in
-    let u, _ = Typing.infer env e @@ Typing.fresh_tyvar () in
+    let e, u, u_a, u_b = Typing.infer env e @@ Typing.fresh_tyvar () in
     print_endline @@ sprintf "- : %s" @@ Pp.string_of_type u;
+    print_endline @@ Pp.string_of_type u_a;
+    print_endline @@ Pp.string_of_type u_b;
+    print_endline @@ Pp.GSR.string_of_exp e;
     read_type_print ()
   with
   | Failure message ->
