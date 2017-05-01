@@ -238,22 +238,7 @@ let generate_constraints env e =
                   @@ Constraints.singleton
                   @@ ConstrConsistent (u2, TyInt) in
           TyInt, u_a2, c
-      | Fun (None, x, None, e) ->
-          let u_a = b in
-          let x_x, x_g = fresh_tyvar (), fresh_tyvar () in
-          let u, u_b, c = generate_constraints (Environment.add x x_x env) e x_g in
-          TyFun (x_x, u_b, u, x_g), u_a, c
-      | Fun (None, x, Some u_1, e) ->
-          let u_a = b in
-          let x_g = fresh_tyvar () in
-          let u_2, u_b, c = generate_constraints (Environment.add x u_1 env) e x_g in
-          TyFun (u_1, u_b, u_2, x_g), u_a, c
-      | Fun (Some u_g, x, None, e) ->
-          let u_a = b in
-          let x_x = fresh_tyvar () in
-          let u_2, u_b, c = generate_constraints (Environment.add x x_x env) e u_g in
-          TyFun (x_x, u_b, u_2, u_g), u_a, c
-      | Fun (Some u_g, x, Some u_1, e) ->
+      | Fun (u_g, x, u_1, e) ->
           let u_a = b in
           let u_2, u_b, c = generate_constraints (Environment.add x u_1 env) e u_g in
           TyFun (u_1, u_b, u_2, u_g), u_a, c
@@ -271,14 +256,7 @@ let generate_constraints env e =
                   @@ Constraints.union c4
                   @@ Constraints.union c5 c6 in
           u, u_a, c
-      | Shift (k, None, e) ->
-          let u_b = b in
-          let x_x, x_a, x_g = fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-          let env' = Environment.add k (TyFun (x_x, x_g, x_a, x_g)) env in
-          let u_d, u_d', c = generate_constraints env' e u_b in
-          let c = Constraints.add (ConstrConsistent (u_d, u_d')) c in
-          x_x, x_a, c
-      | Shift (k, Some u_s, e) ->
+      | Shift (k, u_s, e) ->
           let u_b = b in
           let u_d, u_d', c1 = generate_constraints (Environment.add k u_s env) e u_b in
           let u_a, c2 = generate_constraints_domc_eq u_s in
@@ -295,13 +273,7 @@ let generate_constraints env e =
                   @@ Constraints.singleton
                   @@ ConstrConsistent (u_d, u_d') in
           u, u_a, c
-      | Reset (e, None) ->
-          let u_a = b in
-          let x_x = fresh_tyvar () in
-          let u_b, u_b', c = generate_constraints env e x_x in
-          let c = Constraints.add (ConstrConsistent (u_b, u_b')) c in
-          x_x, u_a, c
-      | Reset (e, Some u) ->
+      | Reset (e, u) ->
           let u_a = b in
           let u_b, u_b', c = generate_constraints env e u in
           let c = Constraints.add (ConstrConsistent (u_b, u_b')) c in
@@ -407,7 +379,7 @@ module GSR = struct
         let f2, u2, u2_a = translate env e2 u1_a in
         (* TODO CONSITENCY CHECK *)
         CSR.BinOp (op, f1, f2), TyInt, u2_a
-    | Fun (Some u_g, x, Some u_1, e) ->
+    | Fun (u_g, x, u_1, e) ->
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
         CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_b
     | App (e1, e2) ->
@@ -418,7 +390,7 @@ module GSR = struct
                  CSR.Cast(f2, u2, domf u1)),
         domc u1,
         codc u1
-    | Shift (k, Some u_s, e) ->
+    | Shift (k, u_s, e) ->
         let f, u_d, u_d' = translate (Environment.add k u_s env) e u_b in
         let u_g = meet (codc u_s) (codf u_s) in
         (* TODO CONSITENCY CHECK *)
@@ -428,7 +400,7 @@ module GSR = struct
                             CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
         domf u_s,
         domc u_s
-    | Reset (e, Some u) ->
+    | Reset (e, u) ->
         let u_a = u_b in
         let f, u_b, u_b' = translate env e u in
         (* TODO CONSITENCY CHECK *)

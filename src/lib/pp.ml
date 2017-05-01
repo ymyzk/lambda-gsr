@@ -41,15 +41,11 @@ let string_of_const = function
   | ConstInt i -> string_of_int i
   | ConstUnit -> "()"
 
-(* string -> ty option -> string *)
-let string_of_type_annot x = function
-  | None -> x
-  | Some t -> sprintf "(%s: %s)" x @@ string_of_type t
+(* string -> ty -> string *)
+let string_of_type_annot x t = sprintf "(%s: %s)" x @@ string_of_type t
 
-(* ty option -> string *)
-let string_of_answer_type_annot = function
-  | None -> ""
-  | Some t -> sprintf "^%s" @@ string_of_type t
+(* ty -> string *)
+let string_of_answer_type_annot t = sprintf "^%s" @@ string_of_type t
 
 let string_of_constr = function
   | ConstrEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)

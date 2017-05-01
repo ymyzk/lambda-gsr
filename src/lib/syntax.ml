@@ -41,10 +41,10 @@ module GSR = struct
     | Var of id
     | Const of const
     | BinOp of binop * exp * exp
-    | Fun of ty option * id * ty option * exp (* λ^12:3.4 *)
+    | Fun of ty * id * ty * exp (* λ^12:3.4 *)
     | App of exp * exp
-    | Shift of id * ty option * exp (* S1:2.3 *)
-    | Reset of exp * ty option (* <1>^2 *)
+    | Shift of id * ty * exp (* S1:2.3 *)
+    | Reset of exp * ty (* <1>^2 *)
     | If of exp * exp * exp
     | Consq of exp * exp
 end
