@@ -6,7 +6,8 @@ let _ =
         try
           let x = Printf.sprintf "%s;;" @@ Js.to_string x in
           let e = Parser.toplevel Lexer.main @@ Lexing.from_string x in
-          let s = Pp.string_of_type @@ Typing.type_of_exp empty e in
+          let u, _ = Typing.infer empty e @@ Typing.fresh_tyvar () in
+          let s = Pp.string_of_type u in
           object%js
             val isSucceeded = Js._true
             val result = Js.string s

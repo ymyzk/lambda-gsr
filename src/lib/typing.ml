@@ -207,7 +207,7 @@ let rec generate_constraints_join u1 u2 = match u1, u2 with
     TyFun (u1, u2, u3, u4), c
 | _ -> raise @@ Type_error "error: generate_constraints_join"
 
-let generate_constraints env e =
+let generate_constraints env e b =
   let rec generate_constraints env e b =
     let t, a, c = match e with
       | Var x ->
@@ -310,7 +310,7 @@ let generate_constraints env e =
     *)
     t, a, c
   in
-  generate_constraints env e @@ fresh_tyvar ()
+  generate_constraints env e b
 
 let unify constraints : substitutions =
   let rec unify c =
@@ -347,11 +347,12 @@ let unify constraints : substitutions =
   in
   unify @@ Constraints.map (fun x -> x) constraints
 
-let type_of_exp env e =
-  let u, a, c = generate_constraints env e in
+let infer env e b =
+  let u, a, c = generate_constraints env e b in
   let s = unify c in
-  let t = subst_type_substitutions u s in
-  subst_tyvars t
+  let u = subst_type_substitutions u s in
+  let a = subst_type_substitutions u s in
+  subst_tyvars u, subst_tyvars a
 
 module GSR = struct
   open Syntax
