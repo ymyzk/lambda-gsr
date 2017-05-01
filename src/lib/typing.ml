@@ -27,6 +27,33 @@ let is_typaram = function
   | TyParam _ -> true
   | _ -> false
 
+let domf = function
+  | TyFun (u, _, _, _) -> u
+  | TyDyn -> TyDyn
+  | _ -> raise @@ Type_error "failed to match"
+
+let codc = function
+  | TyFun (_, u, _, _) -> u
+  | TyDyn -> TyDyn
+  | _ -> raise @@ Type_error "failed to match"
+
+let domc = function
+  | TyFun (_, _, u, _) -> u
+  | TyDyn -> TyDyn
+  | _ -> raise @@ Type_error "failed to match"
+
+let codf = function
+  | TyFun (_, _, _, u) -> u
+  | TyDyn -> TyDyn
+  | _ -> raise @@ Type_error "failed to match"
+
+let rec meet u1 u2 = match u1, u2 with
+  | u1, u2 when u1 = u2 -> u1
+  | u, TyDyn | TyDyn, u -> u
+  | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
+      TyFun (meet u11 u21, meet u12 u22, meet u13 u23, meet u14 u24)
+  | _ -> raise @@ Type_error "failed to meet"
+
 (* Base type, type variables, or type parameters *)
 let is_bvp_type t = is_base_type t || is_tyvar t || is_typaram t
 
@@ -45,6 +72,14 @@ let fresh_tyvar =
     let v = !counter in
     counter := v + 1;
     TyVar (v + 1)
+  in body
+
+let fresh_var =
+  let counter = ref 0 in
+  let body () =
+    let v = !counter in
+    counter := v + 1;
+    "!" ^ string_of_int @@ v + 1
   in body
 
 let rec tyvars = function
@@ -345,3 +380,57 @@ let type_of_exp env e =
   let s = unify c in
   let t = subst_type_substitutions u s in
   subst_tyvars t
+
+module GSR = struct
+  open Syntax
+  open Syntax.GSR
+
+  let rec translate env e u_b = match e with
+    | Var x -> begin
+        try
+          let u = Environment.find x env in
+          CSR.Var x, u, u_b
+        with Not_found ->
+          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+      end
+    | Const c ->
+        let u = begin
+          match c with
+          | ConstBool b -> TyBool
+          | ConstInt i -> TyInt
+          | ConstUnit -> TyUnit
+          end
+        in
+        CSR.Const c, u, u_b
+    | BinOp (op, e1, e2) ->
+        let f1, u1, u1_a = translate env e1 u_b in
+        let f2, u2, u2_a = translate env e2 u1_a in
+        (* TODO CONSITENCY CHECK *)
+        CSR.BinOp (op, f1, f2), TyInt, u2_a
+    | Fun (Some u_g, x, Some u_1, e) ->
+        let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
+        CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_b
+    | App (e1, e2) ->
+        let f1, u1, u_g = translate env e1 u_b in
+        let f2, u2, u_b = translate env e2 u_g in
+        (* TODO CONSITENCY CHECK *)
+        CSR.App (CSR.Cast (f1, u1, TyFun (domf u1, codc u1, domc u1, u_b)),
+                 CSR.Cast(f2, u2, domf u1)),
+        domc u1,
+        codc u1
+    | Shift (k, Some u_s, e) ->
+        let f, u_d, u_d' = translate (Environment.add k u_s env) e u_b in
+        let u_g = meet (codc u_s) (codf u_s) in
+        (* TODO CONSITENCY CHECK *)
+        let k' = fresh_var () in
+        CSR.Shift (k',
+                   CSR.App (CSR.Fun (k, u_s, CSR.Cast(f, u_d, u_d')),
+                            CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
+        domf u_s,
+        domc u_s
+    | Reset (e, Some u) ->
+        let u_a = u_b in
+        let f, u_b, u_b' = translate env e u in
+        (* TODO CONSITENCY CHECK *)
+        CSR.Reset f, u, u_a
+end

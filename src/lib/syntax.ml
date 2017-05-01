@@ -56,7 +56,7 @@ module CSR = struct
     | BinOp of binop * exp * exp
     | Fun of id * ty * exp
     | App of exp * exp
-    | Shift of id * ty * exp
+    | Shift of id * exp
     | Reset of exp
     | If of exp * exp * exp
     | Consq of exp * exp
