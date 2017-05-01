@@ -65,6 +65,7 @@ module GSR = struct
 
   (* exp -> string *)
   let rec string_of_exp = function
+    (* TODO print typarms correctly *)
     | Var id -> id
     | Const c -> string_of_const c
     | BinOp (op, e1, e2) ->

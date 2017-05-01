@@ -47,6 +47,17 @@ module GSR = struct
     | Reset of exp * ty (* <1>^2 *)
     | If of exp * exp * exp
     | Consq of exp * exp
+
+  let rec map f_ty f_exp = function
+    | Var _ as e -> e
+    | Const _ as e -> e
+    | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)
+    | Fun (g, x1, x1_t, e) -> Fun (f_ty g, x1, f_ty x1_t, f_exp e)
+    | App (e1, e2) -> App (f_exp e1, f_exp e2)
+    | Shift (k, k_t, e) -> Shift (k, f_ty k_t, f_exp e)
+    | Reset (e, u) -> Reset (f_exp e, f_ty u)
+    | If (e1, e2, e3) -> If (f_exp e1, f_exp e2, f_exp e3)
+    | Consq (e1, e2) -> Consq (f_exp e1, f_exp e2)
 end
 
 module CSR = struct

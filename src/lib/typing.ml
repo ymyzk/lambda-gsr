@@ -91,6 +91,28 @@ let rec tyvars = function
       vars
   | _ -> Variables.empty
 
+let rec tyvars_exp = function
+  | Var _ -> Variables.empty
+  | Const _ -> Variables.empty
+  | BinOp (op, e1, e2) ->
+      Variables.union (tyvars_exp e1) (tyvars_exp e2)
+  | Fun (g, x1, x1_t, e) ->
+      Variables.union (tyvars g)
+      @@ Variables.union (tyvars x1_t)
+      @@ tyvars_exp e
+  | App (e1, e2) ->
+      Variables.union (tyvars_exp e1) (tyvars_exp e2)
+  | Shift (k, k_t, e) ->
+      Variables.union (tyvars k_t) (tyvars_exp e)
+  | Reset (e, u) ->
+      Variables.union (tyvars_exp e) (tyvars u)
+  | If (e1, e2, e3) ->
+      Variables.union (tyvars_exp e1)
+      @@ Variables.union (tyvars_exp e2)
+      @@ tyvars_exp e3
+  | Consq (e1, e2) ->
+      Variables.union (tyvars_exp e1) (tyvars_exp e2)
+
 (* Substitutions *)
 
 type substitution = tyvar * ty
@@ -103,22 +125,7 @@ let rec subst_type (x : tyvar) (t : ty) = function
   | _ as u -> u
 
 (* [x:=t]e *)
-let rec subst_exp x t = function
-  | BinOp (op, e1, e2) ->
-      BinOp (op, subst_exp x t e1, subst_exp x t e2)
-  | Fun (g, x1, x1_t, e) ->
-      Fun (subst_type x t g, x1, subst_type x t x1_t, subst_exp x t e)
-  | App (e1, e2) ->
-      App (subst_exp x t e1, subst_exp x t e2)
-  | Shift (k, k_t, e) ->
-      Shift (k, subst_type x t k_t, subst_exp x t e)
-  | Reset (e, u) ->
-      Reset (subst_exp x t e, subst_type x t u)
-  | If (e1, e2, e3) ->
-      If (subst_exp x t e1, subst_exp x t e2, subst_exp x t e3)
-  | Consq (e1, e2) ->
-      Consq (subst_exp x t e1, subst_exp x t e2)
-  | _ as e -> e
+let rec subst_exp x t e = GSR.map (subst_type x t) (subst_exp x t) e
 
 (* [x:=t]c *)
 let rec subst_constraint x t = function
@@ -153,19 +160,30 @@ module TyVarMap = Map.Make(
   end
 )
 
-let rec subst_tyvar t m = match t with
+let rec subst_tyvar m = function
   | TyVar x -> TyVarMap.find x m
-  | TyFun (t1, t2, t3, t4) -> TyFun (subst_tyvar t1 m, subst_tyvar t2 m, subst_tyvar t3 m, subst_tyvar t4 m)
-  | _ -> t
+  | TyFun (t1, t2, t3, t4) -> TyFun (subst_tyvar m t1, subst_tyvar m t2, subst_tyvar m t3, subst_tyvar m t4)
+  | _ as t -> t
+
+let rec subst_exp_tyvar m e = GSR.map (subst_tyvar m) (subst_exp_tyvar m) e
 
 (* Create map from type parameters to type variables *)
 let create_tyvar_typaram_map t =
   let f x m = if TyVarMap.mem x m then m else TyVarMap.add x (fresh_typaram ()) m in
   Variables.fold f (tyvars t) TyVarMap.empty
 
+(* Create map from type parameters to type variables *)
+let create_exp_tyvar_typaram_map e =
+  let f x m = if TyVarMap.mem x m then m else TyVarMap.add x (fresh_typaram ()) m in
+  Variables.fold f (tyvars_exp e) TyVarMap.empty
+
 (* Replace type variables with type parameters *)
 let subst_tyvars (t : ty) : ty =
-  subst_tyvar t @@ create_tyvar_typaram_map t
+  subst_tyvar (create_tyvar_typaram_map t) t
+
+(* Replace type variables with type parameters *)
+let subst_exp_tyvars e =
+  subst_exp_tyvar (create_exp_tyvar_typaram_map e) e
 
 (* Type Inference *)
 
@@ -393,8 +411,7 @@ let infer env e b =
   let u = subst_type_substitutions u s in
   let a = subst_type_substitutions a s in
   let b = subst_type_substitutions b s in
-  (* TODO replace type vars in e *)
-  e, subst_tyvars u, subst_tyvars a, subst_tyvars b
+  subst_exp_tyvars e, subst_tyvars u, subst_tyvars a, subst_tyvars b
 
 module GSR = struct
   open Syntax
