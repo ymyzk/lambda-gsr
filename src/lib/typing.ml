@@ -48,7 +48,7 @@ let codf = function
   | _ -> raise @@ Type_error "failed to match"
 
 let rec is_consistent u1 u2 = match u1, u2 with
-  | TyParam p1, TyParam p2 -> true
+  | TyParam p1, TyParam p2 when p1 = p2 -> true
   | TyBool, TyBool
   | TyInt, TyInt
   | TyUnit, TyUnit -> true
