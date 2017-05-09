@@ -82,3 +82,21 @@ module GSR = struct
     | Consq (e1, e2) ->
         sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
 end
+
+module CSR = struct
+  open Eval
+
+  let string_of_tag = function
+    | P p -> "'a" ^ string_of_int p
+    | B -> "bool"
+    | I -> "int"
+    | U -> "unit"
+    | Ar -> "*/* -> */*"
+
+  let rec string_of_value = function
+    | IntV i -> string_of_int i
+    | BoolV b -> string_of_bool b
+    | UnitV -> "()"
+    | FunV _ -> "<fun>"
+    | Tagged (t, v) -> sprintf "%s : %s => ?" (string_of_value v) (string_of_tag t)
+end
