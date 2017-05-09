@@ -1,5 +1,4 @@
 open Printf
-open Typing
 
 let rec read_type_print () =
   print_string "# ";
@@ -24,8 +23,11 @@ let rec read_type_print () =
   | Parser.Error -> (* Menhir *)
       prerr_endline @@ sprintf "Parser.Error";
       read_type_print ()
-  | Type_error message ->
+  | Typing.Type_error message ->
       prerr_endline @@ sprintf "Type_error: %s" message;
+      read_type_print ()
+  | Eval.Eval_error message ->
+      prerr_endline @@ sprintf "Eval_error: %s" message;
       read_type_print ()
 
 let () = read_type_print ()

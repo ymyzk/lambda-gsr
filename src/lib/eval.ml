@@ -1,7 +1,7 @@
 open Syntax
 open Syntax.CSR
 
-exception EvalError of string
+exception Eval_error of string
 
 type tag = P of typaram | I | B | U | Ar
 
@@ -18,7 +18,7 @@ let rec eval exp env cont = match exp with
       if Environment.mem x env then
         cont @@ Environment.find x env
       else
-        raise @@ EvalError "variable not found"
+        raise @@ Eval_error "variable not found"
   | Const c -> begin
       match c with
         | ConstBool b -> cont @@ BoolV b
@@ -34,7 +34,7 @@ let rec eval exp env cont = match exp with
           | Minus, IntV x1, IntV x2 -> IntV (x1 - x2)
           | Mult, IntV x1, IntV x2 -> IntV (x1 - x2)
           | Div, IntV x1, IntV x2 -> IntV (x1 / x2)
-          | _ -> raise @@ EvalError "binop"
+          | _ -> raise @@ Eval_error "binop"
         end
   | Fun (x, _, f) ->
       cont @@ FunV (fun v -> fun c -> eval f (Environment.add x v env) c)
@@ -44,7 +44,7 @@ let rec eval exp env cont = match exp with
         fun v2 -> begin
           match v1 with
             | FunV f -> f v2 cont
-            | _ -> raise @@ EvalError "application"
+            | _ -> raise @@ Eval_error "application"
           end
   | Shift (k, f) ->
       let env' = Environment.add k (FunV (fun v -> fun c -> c (cont v))) env in
@@ -68,7 +68,7 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
           begin
             match v with
               | FunV f -> cast (f a k') u14 u24
-              | _ -> raise @@ EvalError "fun cast"
+              | _ -> raise @@ Eval_error "fun cast"
           end)
   (* Ground *)
   | TyParam p1, TyDyn -> Tagged (P p1, (cast v u1 u1))
@@ -80,34 +80,34 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
   | TyDyn, TyParam p2 -> begin
       match v with
         | Tagged (P p1, v') when p1 = p2 -> cast v' u2 u2
-        | Tagged (_, _) -> raise @@ EvalError "blame"
-        | _ -> raise @@ EvalError "untagged value"
+        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyBool -> begin
       match v with
         | Tagged (B, v') -> cast v' TyBool TyBool
-        | Tagged (_, _) -> raise @@ EvalError "blame"
-        | _ -> raise @@ EvalError "untagged value"
+        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyInt -> begin
       match v with
         | Tagged (I, v') -> cast v' TyInt TyInt
-        | Tagged (_, _) -> raise @@ EvalError "blame"
-        | _ -> raise @@ EvalError "untagged value"
+        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyUnit -> begin
       match v with
         | Tagged (U, v') -> cast v' TyUnit TyUnit
-        | Tagged (_, _) -> raise @@ EvalError "blame"
-        | _ -> raise @@ EvalError "untagged value"
+        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyFun _ -> begin
       match v with
         | Tagged (Ar, v') -> cast v' (TyFun (TyDyn, TyDyn, TyDyn, TyDyn)) u2
-        | Tagged (_, _) -> raise @@ EvalError "blame"
-        | _ -> raise @@ EvalError "untagged value"
+        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | _ -> raise @@ Eval_error "untagged value"
       end
-  | _ -> raise @@ EvalError "cast is not implemented"
+  | _ -> raise @@ Eval_error "cast is not implemented"
 and castk k (u12, u13) (u22, u23) = fun v ->
   let v' = cast v u12 u22 in
   cast (k v') u23 u13
