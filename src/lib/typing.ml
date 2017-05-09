@@ -143,7 +143,7 @@ let subst_type_substitutions (t : ty) (s : substitutions) =
 
 (* S(e) *)
 let subst_exp_substitutions e (s : substitutions) =
-  List.fold_left (fun u -> fun (x, t) -> subst_exp x t e) e s
+  List.fold_left (fun e -> fun (x, t) -> subst_exp x t e) e s
 
 let fresh_typaram =
   let counter = ref 0 in
