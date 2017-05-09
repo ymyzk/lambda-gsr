@@ -28,7 +28,32 @@ let test_tyvars =
 *)
     ]
 
+module CSR = struct
+  open Syntax.GSR
+
+  let test_subst_type =
+    List.map
+      (fun (l, x, t, u, e) -> l >:: fun test_ctxt -> assert_equal (subst_type x t u) e)
+      [
+        "int", 1, TyInt, TyInt, TyInt;
+        "var1", 1, TyInt, TyVar 1, TyInt;
+        "var2", 1, TyInt, TyVar 2, TyVar 2;
+        "fun", 1, TyInt, TyFun (TyInt, TyVar 1, TyBool, TyVar 2), TyFun (TyInt, TyInt, TyBool, TyVar 2);
+      ]
+
+  let test_subst_exp =
+    List.map
+      (fun (l, x, t, u, e) -> l >:: fun test_ctxt -> assert_equal (subst_exp x t u) e)
+      [
+        "var", 1, TyInt, Var "x", Var "x";
+        "fun", 2, TyInt, Fun (TyVar 1, "x", TyVar 2, Var "x"), Fun (TyVar 1, "x", TyInt, Var "x");
+        "reset", 1, TyInt, Reset (Var "x", TyVar 1), Reset (Var "x", TyInt);
+      ]
+end
+
 let suite = [
   "test_is_static_type">::: test_is_static_type;
-  "test_tyvars">::: test_tyvars
+  "test_tyvars">::: test_tyvars;
+  "test_subst_type">::: CSR.test_subst_type;
+  "test_subst_exp">::: CSR.test_subst_exp;
 ]
