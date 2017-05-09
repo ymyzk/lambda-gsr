@@ -18,6 +18,8 @@
 # The standard OMakefile.
 # You will usually need to modify this file for your project.
 
+OCAMLFLAGS    += -w Ae
+
 ########################################################################
 # Phony targets are scoped, so you probably want to declare them first.
 #
