@@ -9,6 +9,9 @@ let rec read_type_print () =
     let e, u, u_a, u_b = Typing.infer env e @@ Typing.fresh_tyvar () in
     let f, u', u_a' = Typing.GSR.translate env e u_b in
     let v = Eval.eval f env (fun x -> x) in
+    ignore u';
+    ignore u_a;
+    ignore u_a';
     print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
 (*
     TODO: cannot compare directly?

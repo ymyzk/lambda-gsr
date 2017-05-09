@@ -5,7 +5,7 @@ open Typing
 
 let test_is_static_type =
   List.map
-    (fun (l, t, e) -> l >:: fun test_ctxt -> assert_equal (is_static_type t) e)
+    (fun (l, t, e) -> l >:: fun _ -> assert_equal (is_static_type t) e)
     [
       "bool", TyBool, true;
       "int", TyInt, true;
@@ -16,7 +16,7 @@ let test_is_static_type =
 
 let test_tyvars =
   List.map
-    (fun (l, t, e) -> l >:: fun test_ctxt -> assert_equal (tyvars t) e)
+    (fun (l, t, e) -> l >:: fun _ -> assert_equal (tyvars t) e)
     [
 (*
       "int", TyInt, Variables.empty;
@@ -33,7 +33,7 @@ module CSR = struct
 
   let test_subst_type =
     List.map
-      (fun (l, x, t, u, e) -> l >:: fun test_ctxt -> assert_equal (subst_type x t u) e)
+      (fun (l, x, t, u, e) -> l >:: fun _ -> assert_equal (subst_type x t u) e)
       [
         "int", 1, TyInt, TyInt, TyInt;
         "var1", 1, TyInt, TyVar 1, TyInt;
@@ -43,7 +43,7 @@ module CSR = struct
 
   let test_subst_exp =
     List.map
-      (fun (l, x, t, u, e) -> l >:: fun test_ctxt -> assert_equal (subst_exp x t u) e)
+      (fun (l, x, t, u, e) -> l >:: fun _ -> assert_equal (subst_exp x t u) e)
       [
         "var", 1, TyInt, Var "x", Var "x";
         "fun", 2, TyInt, Fun (TyVar 1, "x", TyVar 2, Var "x"), Fun (TyVar 1, "x", TyInt, Var "x");

@@ -431,7 +431,6 @@ let infer env e b =
   subst_exp_tyvars e, subst_tyvars u, subst_tyvars a, subst_tyvars b
 
 module GSR = struct
-  open Syntax
   open Syntax.GSR
 
   let rec translate env e u_b = match e with

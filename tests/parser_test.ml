@@ -5,7 +5,7 @@ open GSR
 
 let test_parse =
   let create_case (t, e) =
-    t >:: fun test_ctxt ->
+    t >:: fun _ ->
       let lexbuf = Lexing.from_string t in
       assert_equal (Parser.toplevel Lexer.main lexbuf) e
   in
