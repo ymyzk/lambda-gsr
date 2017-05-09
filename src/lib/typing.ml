@@ -455,7 +455,7 @@ module GSR = struct
         let f1, u1, u1_a = translate env e1 u_b in
         let f2, u2, u2_a = translate env e2 u1_a in
         begin match is_consistent u1 ui1, is_consistent u1 ui2 with
-          | true, true -> CSR.BinOp (op, f1, f2), ui, u2_a
+          | true, true -> CSR.BinOp (op, CSR.Cast (f1, u1, ui1), CSR.Cast (f2, u2, ui2)), ui, u2_a
           | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
           | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
         end
