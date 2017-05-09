@@ -94,15 +94,15 @@ let rec tyvars = function
 let rec tyvars_exp = function
   | Var _ -> Variables.empty
   | Const _ -> Variables.empty
-  | BinOp (op, e1, e2) ->
+  | BinOp (_, e1, e2) ->
       Variables.union (tyvars_exp e1) (tyvars_exp e2)
-  | Fun (g, x1, x1_t, e) ->
+  | Fun (g, _, x1_t, e) ->
       Variables.union (tyvars g)
       @@ Variables.union (tyvars x1_t)
       @@ tyvars_exp e
   | App (e1, e2) ->
       Variables.union (tyvars_exp e1) (tyvars_exp e2)
-  | Shift (k, k_t, e) ->
+  | Shift (_, k_t, e) ->
       Variables.union (tyvars k_t) (tyvars_exp e)
   | Reset (e, u) ->
       Variables.union (tyvars_exp e) (tyvars u)
@@ -128,12 +128,12 @@ let rec subst_type (x : tyvar) (t : ty) = function
 let rec subst_exp x t e = GSR.map (subst_type x t) (subst_exp x t) e
 
 (* [x:=t]c *)
-let rec subst_constraint x t = function
+let subst_constraint x t = function
   | ConstrEqual (u1, u2) -> ConstrEqual (subst_type x t u1, subst_type x t u2)
   | ConstrConsistent (u1, u2) -> ConstrConsistent (subst_type x t u1, subst_type x t u2)
 
 (* [x:=t]C *)
-let rec subst_constraints x t (c : constr list) =
+let subst_constraints x t (c : constr list) =
   (* TODO: OK? *)
   List.map (subst_constraint x t) c
 
@@ -192,7 +192,7 @@ let generate_constraints_domf_eq = function
 | TyVar x ->
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     x1, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
-| TyFun (u1, u2, u3, u4) -> u1, Constraints.empty
+| TyFun (u1, _, _, _) -> u1, Constraints.empty
 | TyDyn -> TyDyn, Constraints.empty
 | _ -> raise @@ Type_error "error"
 
@@ -201,7 +201,7 @@ let generate_constraints_domc_eq = function
 | TyVar x ->
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     x3, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
-| TyFun (u1, u2, u3, u4) -> u3, Constraints.empty
+| TyFun (_, _, u3, _) -> u3, Constraints.empty
 | TyDyn -> TyDyn, Constraints.empty
 | _ -> raise @@ Type_error "error"
 
@@ -210,7 +210,7 @@ let generate_constraints_codc_eq = function
 | TyVar x ->
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     x2, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
-| TyFun (u1, u2, u3, u4) -> u2, Constraints.empty
+| TyFun (_, u2, _, _) -> u2, Constraints.empty
 | TyDyn -> TyDyn, Constraints.empty
 | _ -> raise @@ Type_error "error"
 
@@ -219,7 +219,7 @@ let generate_constraints_codf_eq = function
 | TyVar x ->
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     x4, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
-| TyFun (u1, u2, u3, u4) -> u4, Constraints.empty
+| TyFun (_, _, _, u4) -> u4, Constraints.empty
 | TyDyn -> TyDyn, Constraints.empty
 | _ -> raise @@ Type_error "error"
 
@@ -229,7 +229,7 @@ let generate_constraints_domf_con u1 u2 = match u1 with
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     let c = Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
     Constraints.add (ConstrConsistent (x1, u2)) c
-| TyFun (u11, u12, u13, u14) ->
+| TyFun (u11, _, _, _) ->
     Constraints.singleton @@ ConstrConsistent (u11, u2)
 | TyDyn -> Constraints.singleton @@ ConstrConsistent (u1, u2)
 | _ -> raise @@ Type_error "error"
@@ -240,7 +240,7 @@ let generate_constraints_codf_con u1 u2 = match u1 with
     let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
     let c = Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
     Constraints.add (ConstrConsistent (x4, u2)) c
-| TyFun (u11, u12, u13, u14) ->
+| TyFun (_, _, _, u14) ->
     Constraints.singleton @@ ConstrConsistent (u14, u2)
 | TyDyn -> Constraints.singleton @@ ConstrConsistent (u1, u2)
 | _ -> raise @@ Type_error "error"
@@ -279,13 +279,13 @@ let generate_constraints env e b =
           let u_a = b in
           let u = begin
             match c with
-            | ConstBool b -> TyBool
-            | ConstInt i -> TyInt
+            | ConstBool _ -> TyBool
+            | ConstInt _ -> TyInt
             | ConstUnit -> TyUnit
             end
           in
           u, u_a, Constraints.empty
-      | BinOp (op, e1, e2) ->
+      | BinOp (_, e1, e2) ->
           let u_a0 = b in
           let u1, u_a1, c1 = generate_constraints env e1 u_a0 in
           let u2, u_a2, c2 = generate_constraints env e2 u_a1 in
@@ -428,8 +428,8 @@ module GSR = struct
     | Const c ->
         let u = begin
           match c with
-          | ConstBool b -> TyBool
-          | ConstInt i -> TyInt
+          | ConstBool _ -> TyBool
+          | ConstInt _ -> TyInt
           | ConstUnit -> TyUnit
           end
         in

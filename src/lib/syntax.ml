@@ -48,7 +48,7 @@ module GSR = struct
     | If of exp * exp * exp
     | Consq of exp * exp
 
-  let rec map f_ty f_exp = function
+  let map f_ty f_exp = function
     | Var _ as e -> e
     | Const _ as e -> e
     | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)

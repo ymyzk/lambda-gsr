@@ -1,4 +1,3 @@
-open Printf
 open Syntax
 open Syntax.CSR
 
