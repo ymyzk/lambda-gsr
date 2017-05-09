@@ -47,6 +47,20 @@ let codf = function
   | TyDyn -> TyDyn
   | _ -> raise @@ Type_error "failed to match"
 
+let rec is_consistent u1 u2 = match u1, u2 with
+  | TyParam p1, TyParam p2 -> true
+  | TyBool, TyBool
+  | TyInt, TyInt
+  | TyUnit, TyUnit -> true
+  | _, TyDyn
+  | TyDyn, _ -> true
+  | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
+      is_consistent u11 u21 &&
+      is_consistent u12 u22 &&
+      is_consistent u13 u23 &&
+      is_consistent u14 u24
+  | _ -> false
+
 let rec meet u1 u2 = match u1, u2 with
   | u1, u2 when u1 = u2 -> u1
   | u, TyDyn | TyDyn, u -> u
@@ -56,6 +70,9 @@ let rec meet u1 u2 = match u1, u2 with
 
 (* Base type, type variables, or type parameters *)
 let is_bvp_type t = is_base_type t || is_tyvar t || is_typaram t
+
+let type_of_binop = function
+  | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
 
 (* Type Variables *)
 
@@ -435,34 +452,46 @@ module GSR = struct
         in
         CSR.Const c, u, u_b
     | BinOp (op, e1, e2) ->
+        let ui1, ui2, ui = type_of_binop op in
         let f1, u1, u1_a = translate env e1 u_b in
         let f2, u2, u2_a = translate env e2 u1_a in
-        (* TODO CONSITENCY CHECK *)
-        CSR.BinOp (op, f1, f2), TyInt, u2_a
+        begin match is_consistent u1 ui1, is_consistent u1 ui2 with
+          | true, true -> CSR.BinOp (op, f1, f2), ui, u2_a
+          | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
+          | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
+        end
     | Fun (u_g, x, u_1, e) ->
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
         CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_b
     | App (e1, e2) ->
         let f1, u1, u_g = translate env e1 u_b in
         let f2, u2, u_b = translate env e2 u_g in
-        (* TODO CONSITENCY CHECK *)
-        CSR.App (CSR.Cast (f1, u1, TyFun (domf u1, codc u1, domc u1, u_b)),
-                 CSR.Cast(f2, u2, domf u1)),
-        domc u1,
-        codc u1
+        begin match is_consistent (codf u1) u_b, is_consistent (domf u1) u2 with
+          | true, true ->
+              CSR.App (CSR.Cast (f1, u1, TyFun (domf u1, codc u1, domc u1, u_b)),
+                       CSR.Cast(f2, u2, domf u1)),
+              domc u1,
+              codc u1
+          | _ -> raise @@ Type_error "app: not consistent"
+        end
     | Shift (k, u_s, e) ->
         let f, u_d, u_d' = translate (Environment.add k u_s env) e u_b in
         let u_g = meet (codc u_s) (codf u_s) in
-        (* TODO CONSITENCY CHECK *)
         let k' = fresh_var () in
-        CSR.Shift (k',
-                   CSR.App (CSR.Fun (k, u_s, CSR.Cast(f, u_d, u_d')),
-                            CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
-        domf u_s,
-        domc u_s
+        begin match is_consistent u_d u_d', is_consistent (codc u_s) (codf u_s) with
+          | true, true ->
+              CSR.Shift (k',
+                         CSR.App (CSR.Fun (k, u_s, CSR.Cast(f, u_d, u_d')),
+                                  CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
+              domf u_s,
+              domc u_s
+          | _ -> raise @@ Type_error "shift: not consistent"
+        end
     | Reset (e, u) ->
         let u_a = u_b in
         let f, u_b, u_b' = translate env e u in
-        (* TODO CONSITENCY CHECK *)
-        CSR.Reset f, u, u_a
+        if is_consistent u_b u_b' then
+          CSR.Reset f, u, u_a
+        else
+          raise @@ Type_error "reset: not consistent"
 end
