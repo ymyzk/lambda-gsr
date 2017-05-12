@@ -10,6 +10,7 @@ let string_of_binop = function
   | Div -> "/"
 
 let string_of_type t =
+  (*
   let params = ref [] in
   let string_of_typaram tp =
     let rec string_of_typaram i = function
@@ -20,8 +21,10 @@ let string_of_type t =
     let i = string_of_typaram 0 !params in
     "'" ^ String.make 1 @@ char_of_int @@ (int_of_char 'a') + i
   in
+  *)
   let rec string_of_type = function
-    | TyParam tp -> string_of_typaram tp
+    | TyParam p -> "'a" ^ string_of_int p
+    (* | TyParam tp -> string_of_typaram tp *)
     | TyVar x -> "'x" ^ string_of_int x
     | TyBool -> "bool"
     | TyInt -> "int"
@@ -72,7 +75,7 @@ module GSR = struct
         sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
     | Fun (g, x, x_t, e) ->
         sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
-    | App (x, y) -> sprintf "(%s %s)" (string_of_exp x) (string_of_exp y)
+    | App (x, y) -> sprintf "((%s) (%s))" (string_of_exp x) (string_of_exp y)
     | Shift (k, k_t, e) ->
         sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
     | Reset (e, u) ->
