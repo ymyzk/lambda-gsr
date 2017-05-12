@@ -26,6 +26,7 @@ If type annotations are omitted, they are recovered by the type reconstruction a
   - Function type: `U/U -> U/U`
 - Variables: Lowercase IDs (e.g., `x`, `this_is_var`, `f0`)
 - Constants: integers, `true`, `false`, `()`
+- Binary operators: `+`, `-`, `*`, `/`, `=`, `>`, `<`
 - Abstraction:
   - `fun^U (x: U) -> e`
   - `fun^U x -> e`

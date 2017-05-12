@@ -7,6 +7,7 @@ open GSR
 %token PLUS MINUS STAR QUESTION
 %token FUN RARROW TRUE FALSE INT BOOL SHIFT RESET
 %token IF THEN ELSE
+%token EQUAL GT LT
 
 %token <int> INTV
 %token <Syntax.id> ID
@@ -14,9 +15,11 @@ open GSR
 %start toplevel
 %type <Syntax.GSR.program> toplevel
 
+(* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %right RARROW
 %right SEMI
 %right prec_if
+%left  EQUAL GT LT
 %left  PLUS MINUS
 %left  STAR SLASH
 %right prec_app
@@ -32,6 +35,9 @@ Expr :
   | IF Expr THEN Expr ELSE Expr { If ($2, $4, $6) } %prec prec_if
   | FUN OptionalAnswerTypeAnnot ID RARROW Expr { Fun ($2, $3, Typing.fresh_tyvar (), $5) }
   | FUN OptionalAnswerTypeAnnot LPAREN ID COLON Type RPAREN RARROW Expr { Fun ($2, $4, $6, $9) }
+  | Expr EQUAL Expr { BinOp (Equal, $1, $3) }
+  | Expr GT Expr { BinOp (Gt, $1, $3) }
+  | Expr LT Expr { BinOp (Lt, $1, $3) }
   | Expr STAR Expr { BinOp (Mult, $1, $3) }
   | Expr SLASH Expr { BinOp (Div, $1, $3) }
   | Expr PLUS Expr { BinOp (Plus, $1, $3) }

@@ -34,6 +34,9 @@ let rec eval exp env cont = match exp with
           | Minus, IntV x1, IntV x2 -> IntV (x1 - x2)
           | Mult, IntV x1, IntV x2 -> IntV (x1 - x2)
           | Div, IntV x1, IntV x2 -> IntV (x1 / x2)
+          | Equal, IntV x1, IntV x2 -> BoolV (x1 = x2)
+          | Gt, IntV x1, IntV x2 -> BoolV (x1 > x2)
+          | Lt, IntV x1, IntV x2 -> BoolV (x1 < x2)
           | _ -> raise @@ Eval_error "binop"
         end
   | Fun (x, _, f) ->

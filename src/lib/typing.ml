@@ -73,6 +73,7 @@ let is_bvp_type t = is_base_type t || is_tyvar t || is_typaram t
 
 let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
+  | Equal | Gt | Lt -> TyInt, TyInt, TyBool
 
 (* Type Variables *)
 
@@ -298,16 +299,17 @@ let generate_constraints env e b =
             end
           in
           u, u_a, Constraints.empty
-      | BinOp (_, e1, e2) ->
+      | BinOp (op, e1, e2) ->
+          let ui1, ui2, ui = type_of_binop op in
           let u_a0 = b in
           let u1, u_a1, c1 = generate_constraints env e1 u_a0 in
           let u2, u_a2, c2 = generate_constraints env e2 u_a1 in
           let c = Constraints.union c1
                   @@ Constraints.union c2
-                  @@ Constraints.add (ConstrConsistent (u1, TyInt))
+                  @@ Constraints.add (ConstrConsistent (u1, ui1))
                   @@ Constraints.singleton
-                  @@ ConstrConsistent (u2, TyInt) in
-          TyInt, u_a2, c
+                  @@ ConstrConsistent (u2, ui2) in
+          ui, u_a2, c
       | Fun (u_g, x, u_1, e) ->
           let u_a = b in
           let u_2, u_b, c = generate_constraints (Environment.add x u_1 env) e u_g in

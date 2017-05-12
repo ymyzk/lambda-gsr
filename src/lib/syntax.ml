@@ -26,6 +26,9 @@ type binop =
   | Minus
   | Mult
   | Div
+  | Equal
+  | Gt
+  | Lt
 
 (* Type Environment *)
 

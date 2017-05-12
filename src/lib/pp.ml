@@ -8,6 +8,9 @@ let string_of_binop = function
   | Minus -> "-"
   | Mult -> "*"
   | Div -> "/"
+  | Equal -> "="
+  | Gt -> ">"
+  | Lt -> "<"
 
 let string_of_type t =
   (*

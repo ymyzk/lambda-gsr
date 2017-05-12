@@ -32,6 +32,9 @@ rule main = parse
 | "?" { Parser.QUESTION }
 | "^" { Parser.CARET }
 | "#" { Parser.SHARP }
+| "=" { Parser.EQUAL }
+| ">" { Parser.GT }
+| "<" { Parser.LT }
 
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
   {
