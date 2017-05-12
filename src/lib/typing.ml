@@ -170,6 +170,8 @@ let fresh_typaram =
     TyParam (v + 1)
   in body
 
+(* Type Variables -> Type Parameters *)
+
 module TyVarMap = Map.Make(
   struct
     type t = tyvar
@@ -184,23 +186,17 @@ let rec subst_tyvar m = function
 
 let rec subst_exp_tyvar m e = GSR.map (subst_tyvar m) (subst_exp_tyvar m) e
 
-(* Create map from type parameters to type variables *)
-let create_tyvar_typaram_map t =
+(* Replace type variables with type parameters *)
+let subst_tyvars tvm t =
   let f x m = if TyVarMap.mem x m then m else TyVarMap.add x (fresh_typaram ()) m in
-  Variables.fold f (tyvars t) TyVarMap.empty
-
-(* Create map from type parameters to type variables *)
-let create_exp_tyvar_typaram_map e =
-  let f x m = if TyVarMap.mem x m then m else TyVarMap.add x (fresh_typaram ()) m in
-  Variables.fold f (tyvars_exp e) TyVarMap.empty
+  let tvm = Variables.fold f (tyvars t) tvm in
+  tvm, subst_tyvar tvm t
 
 (* Replace type variables with type parameters *)
-let subst_tyvars (t : ty) : ty =
-  subst_tyvar (create_tyvar_typaram_map t) t
-
-(* Replace type variables with type parameters *)
-let subst_exp_tyvars e =
-  subst_exp_tyvar (create_exp_tyvar_typaram_map e) e
+let subst_exp_tyvars tvm e =
+  let f x m = if TyVarMap.mem x m then m else TyVarMap.add x (fresh_typaram ()) m in
+  let tvm = Variables.fold f (tyvars_exp e) tvm in
+  tvm, subst_exp_tyvar tvm e
 
 (* Type Inference *)
 
@@ -428,7 +424,12 @@ let infer env e b =
   let u = subst_type_substitutions u s in
   let a = subst_type_substitutions a s in
   let b = subst_type_substitutions b s in
-  subst_exp_tyvars e, subst_tyvars u, subst_tyvars a, subst_tyvars b
+  let tvm = TyVarMap.empty in
+  let tvm, e = subst_exp_tyvars tvm e in
+  let tvm, u = subst_tyvars tvm u in
+  let tvm, a = subst_tyvars tvm a in
+  let _, b = subst_tyvars tvm b in
+  e, u, a, b
 
 module GSR = struct
   open Syntax.GSR
