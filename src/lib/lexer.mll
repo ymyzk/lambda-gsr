@@ -31,6 +31,7 @@ rule main = parse
 | "*" { Parser.STAR }
 | "?" { Parser.QUESTION }
 | "^" { Parser.CARET }
+| "#" { Parser.SHARP }
 
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
   {

@@ -48,6 +48,13 @@ module GSR = struct
     | If of exp * exp * exp
     | Consq of exp * exp
 
+  type directive =
+    | BoolDir of string * bool
+
+  type program =
+    | Exp of exp
+    | Directive of directive
+
   let map f_ty f_exp = function
     | Var _ as e -> e
     | Const _ as e -> e

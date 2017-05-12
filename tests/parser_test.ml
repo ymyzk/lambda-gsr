@@ -7,7 +7,7 @@ let test_parse =
   let create_case (t, e) =
     t >:: fun _ ->
       let lexbuf = Lexing.from_string t in
-      assert_equal (Parser.toplevel Lexer.main lexbuf) e
+      assert_equal (Parser.toplevel Lexer.main lexbuf) (Exp e)
   in
   List.map create_case [
     "1;;", Const (ConstInt 1);

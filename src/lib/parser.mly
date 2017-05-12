@@ -3,7 +3,7 @@ open Syntax
 open GSR
 %}
 
-%token LPAREN RPAREN SEMI SEMISEMI COLON SLASH CARET
+%token LPAREN RPAREN SEMI SEMISEMI COLON SLASH CARET SHARP
 %token PLUS MINUS STAR QUESTION
 %token FUN RARROW TRUE FALSE INT BOOL SHIFT RESET
 %token IF THEN ELSE
@@ -12,7 +12,7 @@ open GSR
 %token <Syntax.id> ID
 
 %start toplevel
-%type <Syntax.GSR.exp> toplevel
+%type <Syntax.GSR.program> toplevel
 
 %right RARROW
 %right SEMI
@@ -24,7 +24,8 @@ open GSR
 %%
 
 toplevel :
-  | Expr SEMISEMI { $1 }
+  | Expr SEMISEMI { Exp $1 }
+  | SHARP Directive SEMISEMI { Directive $2 }
 
 Expr :
   | Expr SEMI Expr { Consq ($1, $3) }
@@ -63,3 +64,7 @@ AType :
 OptionalAnswerTypeAnnot :
   | { Typing.fresh_tyvar () }
   | CARET Type { $2 }
+
+Directive :
+  | ID TRUE { BoolDir ($1, true) }
+  | ID FALSE { BoolDir ($1, false) }
