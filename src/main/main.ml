@@ -13,14 +13,22 @@ let rec read_type_print dirs =
     begin match e with
     | Exp e ->
         let e, u, u_a, u_b = Typing.infer env e @@ Typing.fresh_tyvar () in
+        if dirs.debug then begin
+          prerr_endline "GSR:";
+          prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
+          prerr_endline @@ " U: " ^ Pp.string_of_type u;
+          prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a;
+          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
+        end;
         let f, u', u_a' = Typing.GSR.translate env e u_b in
         let v = Eval.eval f env (fun x -> x) in
-        ignore u';
-        ignore u_a;
-        ignore u_a';
-        if dirs.debug then
-          prerr_endline @@ "Translated: " ^ Pp.CSR.string_of_exp f
-        else ();
+        if dirs.debug then begin
+          prerr_endline "CSR:";
+          prerr_endline @@ " f: " ^ Pp.CSR.string_of_exp f;
+          prerr_endline @@ " U: " ^ Pp.string_of_type u';
+          prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a';
+          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
+        end;
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_type_print dirs
     | Directive d ->
