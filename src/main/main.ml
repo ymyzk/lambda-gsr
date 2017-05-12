@@ -13,10 +13,11 @@ let rec read_type_print dirs =
     begin match e with
     | Syntax.GSR.Exp e ->
         let u_b = Typing.fresh_tyvar () in
-        if dirs.debug then
+        if dirs.debug then begin
           prerr_endline "Input:";
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
-          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b;
+          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
+        end;
         let e, u, u_a, u_b = Typing.infer env e u_b ~debug:dirs.debug in
         if dirs.debug then begin
           prerr_endline "GSR:";
