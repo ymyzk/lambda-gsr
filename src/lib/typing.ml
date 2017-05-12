@@ -460,8 +460,9 @@ module GSR = struct
           | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
         end
     | Fun (u_g, x, u_1, e) ->
+        let u_a = u_b in
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
-        CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_b
+        CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_a
     | App (e1, e2) ->
         let f1, u1, u_g = translate env e1 u_b in
         let f2, u2, u_b = translate env e2 u_g in
