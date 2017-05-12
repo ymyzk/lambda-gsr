@@ -2,21 +2,41 @@
 
 [![Build Status](https://travis-ci.org/ymyzk/lambda-gsr.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-gsr)
 
-A type reconstruction algorithm implementation for the implicitly and gradually typed language with shift and reset.
+An interpreter of the implicitly and gradually typed language with shift and reset.
 
-**Try it online!! https://gsrinfer.ymyzk.com**
+<!-- **Try it online!! https://gsrinfer.ymyzk.com** -->
 
-## Usage
-### Compile & Run
+## Build instructions
 ```shell
 omake
 ./src/main/main
 ```
 
-### Run unit tests
+### Unit tests
 ```shell
 omake test
 ```
+
+## Syntax
+If type annotations are omitted, they are recovered by the type reconstruction algorithm.
+
+- Types (U):
+  - Base types: `bool`, `int`, `unit`
+  - Dynamic type: `?`
+  - Function type: `U/U -> U/U`
+- Variables: Lowercase IDs (e.g., `x`, `this_is_var`, `f0`)
+- Constants: integers, `true`, `false`, `()`
+- Abstraction:
+  - `fun^U (x: U) -> e`
+  - `fun^U x -> e`
+  - `fun (x: U) -> e`
+  - `fun x -> e`
+- Application: `e1 e2`
+- Shift: `shift (k: U) -> e`, `shift k -> e`
+- Reset: `reset^U e`, `reset e`
+- Top-level input:
+  - `e;;`
+  - `#debug true;;`, `#debug false;;`
 
 ## Requirements
 - OCaml 4.02+
