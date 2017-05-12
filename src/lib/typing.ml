@@ -490,7 +490,7 @@ module GSR = struct
         let u_a = u_b in
         let f, u_b, u_b' = translate env e u in
         if is_consistent u_b u_b' then
-          CSR.Reset f, u, u_a
+          CSR.Reset (CSR.Cast (f, u_b, u_b')), u, u_a
         else
           raise @@ Type_error "reset: not consistent"
 end
