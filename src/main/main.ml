@@ -27,6 +27,10 @@ let rec read_type_print dirs =
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
         let f, u', u_a' = Typing.GSR.translate env e u_b in
+        (* Translation must not change types *)
+        assert (u = u');
+        assert (u_a = u_a');
+        (* TODO: check types in λCSR *)
         let v = Eval.eval f env (fun x -> x) in
         if dirs.debug then begin
           prerr_endline "CSR:";
@@ -35,6 +39,7 @@ let rec read_type_print dirs =
           prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a';
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
+        (* TODO: check types in λCSR *)
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_type_print dirs
     | Syntax.GSR.Directive d ->
@@ -47,11 +52,6 @@ let rec read_type_print dirs =
               read_type_print dirs
         end
     end
-(*
-    TODO: cannot compare directly?
-    assert (u = u');
-    assert (u_a = u_a');
-*)
   with
   | Failure message ->
       prerr_endline @@ sprintf "Failure: %s" message;
