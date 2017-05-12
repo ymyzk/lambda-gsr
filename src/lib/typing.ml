@@ -417,13 +417,24 @@ let unify constraints : substitutions =
   in
   unify @@ Constraints.map (fun x -> x) constraints
 
-let infer env e b =
+let infer ?(debug=false) env e b =
   let u, a, c = generate_constraints env e b in
+  if debug then
+    prerr_endline @@ "Constraints: " ^ Pp.string_of_constraints c;
   let s = unify c in
+  if debug then
+    prerr_endline @@ "Substitutions: " ^ Pp.string_of_substitutions s;
   let e = subst_exp_substitutions e s in
   let u = subst_type_substitutions u s in
   let a = subst_type_substitutions a s in
   let b = subst_type_substitutions b s in
+  if debug then begin
+    prerr_endline "After Substitution:";
+    prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
+    prerr_endline @@ " U: " ^ Pp.string_of_type u;
+    prerr_endline @@ " Uα: " ^ Pp.string_of_type a;
+    prerr_endline @@ " Uβ: " ^ Pp.string_of_type b
+  end;
   let tvm = TyVarMap.empty in
   let tvm, e = subst_exp_tyvars tvm e in
   let tvm, u = subst_tyvars tvm u in

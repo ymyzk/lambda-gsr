@@ -7,7 +7,7 @@ let _ =
           let x = Printf.sprintf "%s;;" @@ Js.to_string x in
           let e = Parser.toplevel Lexer.main @@ Lexing.from_string x in
           begin match e with
-          | Exp e ->
+          | Syntax.GSR.Exp e ->
             let _, u, _, _ = Typing.infer empty e @@ Typing.fresh_tyvar () in
             let s = Pp.string_of_type u in
             object%js

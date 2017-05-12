@@ -11,8 +11,13 @@ let rec read_type_print dirs =
     let env = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main @@ Lexing.from_channel stdin in
     begin match e with
-    | Exp e ->
-        let e, u, u_a, u_b = Typing.infer env e @@ Typing.fresh_tyvar () in
+    | Syntax.GSR.Exp e ->
+        let u_b = Typing.fresh_tyvar () in
+        if dirs.debug then
+          prerr_endline "Input:";
+          prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
+          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b;
+        let e, u, u_a, u_b = Typing.infer env e u_b ~debug:dirs.debug in
         if dirs.debug then begin
           prerr_endline "GSR:";
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
@@ -31,9 +36,10 @@ let rec read_type_print dirs =
         end;
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_type_print dirs
-    | Directive d ->
+    | Syntax.GSR.Directive d ->
         begin match d with
-          | BoolDir ("debug", b) ->
+          | Syntax.GSR.BoolDir ("debug", b) ->
+              prerr_endline @@ "debug mode " ^ if b then "enabled" else "disabled";
               read_type_print { debug = b }
           | _ ->
               prerr_endline "unsupported directive";
