@@ -1,8 +1,6 @@
 open Syntax
 open Syntax.CSR
 
-exception Eval_error of string
-
 type tag = P of typaram | I | B | U | Ar
 
 type value =
@@ -12,6 +10,9 @@ type value =
   | FunV of (value -> cont -> value)
   | Tagged of tag * value
 and cont = value -> value
+
+exception Eval_error of string
+exception Blame of value * string
 
 let rec eval exp env cont = match exp with
   | Var x ->
@@ -83,31 +84,31 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
   | TyDyn, TyParam p2 -> begin
       match v with
         | Tagged (P p1, v') when p1 = p2 -> cast v' u2 u2
-        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | Tagged (_, _) -> raise @@ Blame (v, "'a" ^ (string_of_int p2))
         | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyBool -> begin
       match v with
         | Tagged (B, v') -> cast v' TyBool TyBool
-        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | Tagged (_, _) -> raise @@ Blame (v, "bool")
         | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyInt -> begin
       match v with
         | Tagged (I, v') -> cast v' TyInt TyInt
-        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | Tagged (_, _) -> raise @@ Blame (v, "int")
         | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyUnit -> begin
       match v with
         | Tagged (U, v') -> cast v' TyUnit TyUnit
-        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | Tagged (_, _) -> raise @@ Blame (v, "unit")
         | _ -> raise @@ Eval_error "untagged value"
       end
   | TyDyn, TyFun _ -> begin
       match v with
         | Tagged (Ar, v') -> cast v' (TyFun (TyDyn, TyDyn, TyDyn, TyDyn)) u2
-        | Tagged (_, _) -> raise @@ Eval_error "blame"
+        | Tagged (_, _) -> raise @@ Blame (v, "<fun>")
         | _ -> raise @@ Eval_error "untagged value"
       end
   | _ -> raise @@ Eval_error "cast is not implemented"

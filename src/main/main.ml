@@ -66,6 +66,9 @@ let rec read_eval_print lexeme dirs =
   | Eval.Eval_error message ->
       prerr_endline @@ sprintf "Eval_error: %s" message;
       read_eval_print dirs
+  | Eval.Blame (value, message) ->
+      prerr_endline @@ sprintf "Blame: %s => %s" (Pp.CSR.string_of_value value) message;
+      read_eval_print dirs
 
 let () =
   let lexeme = Lexing.from_channel stdin in
