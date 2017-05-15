@@ -2,6 +2,9 @@ open Constraints
 open Syntax
 
 exception Type_error of string
+exception Unification_error of
+  ((Format.formatter -> constr -> unit) -> constr -> unit, Format.formatter, unit) Pervasives.format
+  * constr
 
 (* Utilities *)
 
@@ -406,15 +409,18 @@ let unify constraints : substitutions =
           let s = unify @@ subst_constraints x t c in
           (x, t) :: s
       | _ ->
-          raise @@ Type_error ("cannot unify: " ^ (Pp.string_of_constr constr))
+          raise @@ Unification_error ("cannot unify: %a", constr)
     end
   in
   unify @@ Constraints.map (fun x -> x) constraints
 
-let infer ?(debug=false) env e b =
+let infer ?(formatter=None) env e b =
+  let debug = match formatter with None -> false | Some _ -> true in
   let u, a, c = generate_constraints env e b in
-  if debug then
-    prerr_endline @@ "Constraints: " ^ Pp.string_of_constraints c;
+  begin match formatter with
+    | Some formatter -> Format.fprintf formatter "Constraints: %a\n" Pp.pp_print_constraints c
+    | _ -> ()
+  end;
   let s = unify c in
   if debug then
     prerr_endline @@ "Substitutions: " ^ Pp.string_of_substitutions s;

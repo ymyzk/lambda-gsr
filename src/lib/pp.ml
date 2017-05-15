@@ -1,5 +1,8 @@
 open Constraints
+open Format
 open Syntax
+
+let pp_sep ppf () = fprintf ppf ", "
 
 (* binop -> string *)
 let string_of_binop = function
@@ -55,12 +58,12 @@ let string_of_type_annot x t = Printf.sprintf "(%s: %s)" x @@ string_of_type t
 (* ty -> string *)
 let string_of_answer_type_annot t = Printf.sprintf "^%s" @@ string_of_type t
 
-let string_of_constr = function
-  | CEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)
-  | CConsistent (u1, u2) -> (string_of_type u1) ^ "~" ^ (string_of_type u2)
+let pp_print_constr ppf = function
+  | CEqual (u1, u2) -> fprintf ppf "%s=%s" (string_of_type u1) (string_of_type u2)
+  | CConsistent (u1, u2) -> fprintf ppf "%s~%s" (string_of_type u1) (string_of_type u2)
 
-let string_of_constraints c =
-  String.concat ", " @@ Constraints.map string_of_constr c
+let pp_print_constraints ppf c =
+  pp_print_list pp_print_constr ppf (Constraints.to_list c) ~pp_sep:pp_sep
 
 let string_of_substitution (x, t) =
   Printf.sprintf "x%d=%s" x @@ string_of_type t

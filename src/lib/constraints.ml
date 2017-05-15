@@ -15,4 +15,5 @@ module Constraints = struct
   include IConstraints
 
   let map f c = IConstraints.fold (fun x l -> (f x) :: l) c []
+  let to_list c = IConstraints.fold (fun x l -> x :: l) c []
 end

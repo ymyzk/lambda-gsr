@@ -1,4 +1,4 @@
-open Printf
+open Format
 
 type directives = {
   debug: bool
@@ -6,7 +6,7 @@ type directives = {
 
 let rec read_eval_print lexeme dirs =
   let read_eval_print = read_eval_print lexeme in
-  print_string "# ";
+  fprintf std_formatter "# @?";
   flush stdout;
   try
     let env = Syntax.Environment.empty in
@@ -19,7 +19,7 @@ let rec read_eval_print lexeme dirs =
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
-        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~debug:dirs.debug in
+        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~formatter:(if dirs.debug then Some std_formatter else None) in
         if dirs.debug then begin
           prerr_endline "GSR:";
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
@@ -42,7 +42,7 @@ let rec read_eval_print lexeme dirs =
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
         let v = Eval.eval f env (fun x -> x) in
-        print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
+        print_endline @@ Printf.sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_eval_print dirs
     | Syntax.GSR.Directive d ->
         begin match d with
@@ -56,19 +56,22 @@ let rec read_eval_print lexeme dirs =
     end
   with
   | Failure message ->
-      prerr_endline @@ sprintf "Failure: %s" message;
+      prerr_endline @@ Printf.sprintf "Failure: %s" message;
       read_eval_print dirs
   | Parser.Error -> (* Menhir *)
-      prerr_endline @@ sprintf "Parser.Error";
+      prerr_endline @@ Printf.sprintf "Parser.Error";
       read_eval_print dirs
   | Typing.Type_error message ->
-      prerr_endline @@ sprintf "Type_error: %s" message;
+      prerr_endline @@ Printf.sprintf "Type_error: %s" message;
+      read_eval_print dirs
+  | Typing.Unification_error (message, c) ->
+      fprintf std_formatter ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
       read_eval_print dirs
   | Eval.Eval_error message ->
-      prerr_endline @@ sprintf "Eval_error: %s" message;
+      prerr_endline @@ Printf.sprintf "Eval_error: %s" message;
       read_eval_print dirs
   | Eval.Blame (value, message) ->
-      prerr_endline @@ sprintf "Blame: %s => %s" (Pp.CSR.string_of_value value) message;
+      prerr_endline @@ Printf.sprintf "Blame: %s => %s" (Pp.CSR.string_of_value value) message;
       read_eval_print dirs
 
 let () =
