@@ -1,5 +1,4 @@
 open Constraints
-open Printf
 open Syntax
 
 (* binop -> string *)
@@ -36,11 +35,11 @@ let string_of_type t =
     | TyVar x -> "'x" ^ string_of_int x
     | TyBase b -> string_of_base_type b
     | TyFun (t1, t2, t3, t4) ->
-        let s1 = sprintf (match t1 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t1 in
-        let s2 = sprintf (match t2 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t2 in
-        let s3 = sprintf (match t3 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t3 in
-        let s4 = sprintf (match t4 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t4 in
-        sprintf "%s/%s -> %s/%s" s1 s2 s3 s4
+        let s1 = Printf.sprintf (match t1 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t1 in
+        let s2 = Printf.sprintf (match t2 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t2 in
+        let s3 = Printf.sprintf (match t3 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t3 in
+        let s4 = Printf.sprintf (match t4 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t4 in
+        Printf.sprintf "%s/%s -> %s/%s" s1 s2 s3 s4
     | TyDyn -> "?"
   in
   string_of_type t
@@ -51,10 +50,10 @@ let string_of_const = function
   | ConstUnit -> "()"
 
 (* string -> ty -> string *)
-let string_of_type_annot x t = sprintf "(%s: %s)" x @@ string_of_type t
+let string_of_type_annot x t = Printf.sprintf "(%s: %s)" x @@ string_of_type t
 
 (* ty -> string *)
-let string_of_answer_type_annot t = sprintf "^%s" @@ string_of_type t
+let string_of_answer_type_annot t = Printf.sprintf "^%s" @@ string_of_type t
 
 let string_of_constr = function
   | CEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)
@@ -78,18 +77,18 @@ module GSR = struct
     | Var id -> id
     | Const c -> string_of_const c
     | BinOp (op, e1, e2) ->
-        sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
+        Printf.sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
     | Fun (g, x, x_t, e) ->
-        sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
-    | App (x, y) -> sprintf "((%s) (%s))" (string_of_exp x) (string_of_exp y)
+        Printf.sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
+    | App (x, y) -> Printf.sprintf "((%s) (%s))" (string_of_exp x) (string_of_exp y)
     | Shift (k, k_t, e) ->
-        sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
+        Printf.sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
     | Reset (e, u) ->
-        sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
+        Printf.sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
     | If (e1, e2, e3) ->
-        sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
+        Printf.sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
     | Consq (e1, e2) ->
-        sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
+        Printf.sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
 end
 
 module CSR = struct
@@ -101,20 +100,20 @@ module CSR = struct
     | Var id -> id
     | Const c -> string_of_const c
     | BinOp (op, e1, e2) ->
-        sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
+        Printf.sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
     | Fun (g, x, x_t, e) ->
-        sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
-    | App (x, y) -> sprintf "(%s) (%s)" (string_of_exp x) (string_of_exp y)
+        Printf.sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
+    | App (x, y) -> Printf.sprintf "(%s) (%s)" (string_of_exp x) (string_of_exp y)
     | Shift (k, k_t, e) ->
-        sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
+        Printf.sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
     | Reset (e, u) ->
-        sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
+        Printf.sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
     | If (e1, e2, e3) ->
-        sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
+        Printf.sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
     | Consq (e1, e2) ->
-        sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
+        Printf.sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
     | Cast (e, u1, u2) ->
-        sprintf "(%s : %s => %s)" (string_of_exp e) (string_of_type u1) (string_of_type u2)
+        Printf.sprintf "(%s : %s => %s)" (string_of_exp e) (string_of_type u1) (string_of_type u2)
 
   let string_of_tag = function
     | P p -> "'a" ^ string_of_int p
@@ -128,5 +127,5 @@ module CSR = struct
     | BoolV b -> string_of_bool b
     | UnitV -> "()"
     | FunV _ -> "<fun>"
-    | Tagged (t, v) -> sprintf "%s : %s => ?" (string_of_value v) (string_of_tag t)
+    | Tagged (t, v) -> Printf.sprintf "%s : %s => ?" (string_of_value v) (string_of_tag t)
 end
