@@ -12,6 +12,11 @@ let string_of_binop = function
   | Gt -> ">"
   | Lt -> "<"
 
+let string_of_base_type = function
+  | TyBool -> "bool"
+  | TyInt -> "int"
+  | TyUnit -> "unit"
+
 let string_of_type t =
   (*
   let params = ref [] in
@@ -29,9 +34,7 @@ let string_of_type t =
     | TyParam p -> "'a" ^ string_of_int p
     (* | TyParam tp -> string_of_typaram tp *)
     | TyVar x -> "'x" ^ string_of_int x
-    | TyBool -> "bool"
-    | TyInt -> "int"
-    | TyUnit -> "unit"
+    | TyBase b -> string_of_base_type b
     | TyFun (t1, t2, t3, t4) ->
         let s1 = sprintf (match t1 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t1 in
         let s2 = sprintf (match t2 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t2 in

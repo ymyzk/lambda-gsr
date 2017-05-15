@@ -37,7 +37,7 @@ let test_parse =
     Fun (None, "f", TyFun (TyInt, TyBool, TyBool, TyInt), Var "f");
     "fun^bool x -> x;;", Fun (TyBool, "x", None, Var "x");
 *)
-    "fun^bool (x:int) -> x;;", Fun (TyBool, "x", TyInt, Var "x");
+    "fun^bool (x:int) -> x;;", Fun (TyBase TyBool, "x", TyBase TyInt, Var "x");
     "x; y; z;;", Consq (Var "x", Consq (Var "y", Var "z"));
   ]
 

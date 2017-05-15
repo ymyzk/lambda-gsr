@@ -72,7 +72,7 @@ let rec eval exp env cont = match exp with
 and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
   (* Base *)
   | TyParam p1, TyParam p2 when p1 = p2 -> v
-  | TyBool, TyBool | TyInt, TyInt | TyUnit, TyUnit -> v
+  | TyBase b1, TyBase b2 when b1 = b2 -> v
   (* Dyn *)
   | TyDyn, TyDyn -> v
   (* Wrap *)
@@ -88,9 +88,9 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
           end)
   (* Ground *)
   | TyParam p1, TyDyn -> Tagged (P p1, (cast v u1 u1))
-  | TyBool, TyDyn -> Tagged (B, (cast v u1 u1))
-  | TyInt, TyDyn -> Tagged (I, (cast v u1 u1))
-  | TyUnit, TyDyn -> Tagged (U, (cast v u1 u1))
+  | TyBase TyBool, TyDyn -> Tagged (B, (cast v u1 u1))
+  | TyBase TyInt, TyDyn -> Tagged (I, (cast v u1 u1))
+  | TyBase TyUnit, TyDyn -> Tagged (U, (cast v u1 u1))
   | TyFun _, TyDyn -> Tagged (Ar, (cast v u1 @@ TyFun (TyDyn, TyDyn, TyDyn, TyDyn)))
   (* Collapse / Conflict *)
   | TyDyn, TyParam p2 -> begin
@@ -99,21 +99,21 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
         | Tagged (_, _) -> raise @@ Blame (v, "'a" ^ (string_of_int p2))
         | _ -> raise @@ Eval_error "untagged value"
       end
-  | TyDyn, TyBool -> begin
+  | TyDyn, TyBase TyBool -> begin
       match v with
-        | Tagged (B, v') -> cast v' TyBool TyBool
+        | Tagged (B, v') -> cast v' (TyBase TyBool) (TyBase TyBool)
         | Tagged (_, _) -> raise @@ Blame (v, "bool")
         | _ -> raise @@ Eval_error "untagged value"
       end
-  | TyDyn, TyInt -> begin
+  | TyDyn, TyBase TyInt -> begin
       match v with
-        | Tagged (I, v') -> cast v' TyInt TyInt
+        | Tagged (I, v') -> cast v' (TyBase TyInt) (TyBase TyInt)
         | Tagged (_, _) -> raise @@ Blame (v, "int")
         | _ -> raise @@ Eval_error "untagged value"
       end
-  | TyDyn, TyUnit -> begin
+  | TyDyn, TyBase TyUnit -> begin
       match v with
-        | Tagged (U, v') -> cast v' TyUnit TyUnit
+        | Tagged (U, v') -> cast v' (TyBase TyUnit) (TyBase TyUnit)
         | Tagged (_, _) -> raise @@ Blame (v, "unit")
         | _ -> raise @@ Eval_error "untagged value"
       end

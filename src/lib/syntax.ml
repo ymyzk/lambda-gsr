@@ -3,12 +3,15 @@
 type typaram = int
 type tyvar = int
 
-type ty =
-  | TyParam of typaram
-  | TyVar of tyvar
+type basety =
   | TyBool
   | TyInt
   | TyUnit
+
+type ty =
+  | TyParam of typaram
+  | TyVar of tyvar
+  | TyBase of basety
   | TyFun of ty * ty * ty * ty
   | TyDyn
 

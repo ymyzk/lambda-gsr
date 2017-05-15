@@ -6,6 +6,8 @@ exception Type_error of string
 
 (* Utilities *)
 
+let is_tyvar = function TyVar _ -> true | _ -> false
+
 (* ty -> bool *)
 let rec is_static_type = function
   | TyFun (t1, t2, t3, t4) -> (is_static_type t1) && (is_static_type t2) && (is_static_type t3) && (is_static_type t4)
@@ -14,18 +16,6 @@ let rec is_static_type = function
 
 (* ty list -> bool *)
 let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type types
-
-let is_base_type = function
-  | TyInt | TyBool | TyUnit -> true
-  | _ -> false
-
-let is_tyvar = function
-  | TyVar _ -> true
-  | _ -> false
-
-let is_typaram = function
-  | TyParam _ -> true
-  | _ -> false
 
 let domf = function
   | TyFun (u, _, _, _) -> u
@@ -49,9 +39,7 @@ let codf = function
 
 let rec is_consistent u1 u2 = match u1, u2 with
   | TyParam p1, TyParam p2 when p1 = p2 -> true
-  | TyBool, TyBool
-  | TyInt, TyInt
-  | TyUnit, TyUnit -> true
+  | TyBase b1, TyBase b2 when b1 = b2 -> true
   | _, TyDyn
   | TyDyn, _ -> true
   | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
@@ -69,11 +57,21 @@ let rec meet u1 u2 = match u1, u2 with
   | _ -> raise @@ Type_error "failed to meet"
 
 (* Base type, type variables, or type parameters *)
-let is_bvp_type t = is_base_type t || is_tyvar t || is_typaram t
+let is_bvp_type = function
+  | TyBase _ -> true
+  | TyVar _ -> true
+  | TyParam _ -> true
+  | _ -> false
+
+let type_of_const c = TyBase (match c with
+  | ConstBool _ -> TyBool
+  | ConstInt _ -> TyInt
+  | ConstUnit -> TyUnit
+)
 
 let type_of_binop = function
-  | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
-  | Equal | Gt | Lt -> TyInt, TyInt, TyBool
+  | Plus | Minus | Mult | Div -> TyBase TyInt, TyBase TyInt, TyBase TyInt
+  | Equal | Gt | Lt -> TyBase TyInt, TyBase TyInt, TyBase TyBool
 
 (* Type Variables *)
 
@@ -260,9 +258,7 @@ let generate_constraints_codf_con u1 u2 = match u1 with
 | _ -> raise @@ Type_error "error"
 
 let rec generate_constraints_join u1 u2 = match u1, u2 with
-| TyInt, TyInt -> TyInt, Constraints.empty
-| TyBool, TyBool -> TyBool, Constraints.empty
-| TyUnit, TyUnit -> TyUnit, Constraints.empty
+| TyBase b1, TyBase b2 when b1 = b2 -> TyBase b1, Constraints.empty
 | _, TyDyn -> u1, Constraints.singleton @@ ConstrConsistent (u1, TyDyn)
 | TyDyn, _ -> u2, Constraints.singleton @@ ConstrConsistent (TyDyn, u2)
 | TyVar _, _ -> u1, Constraints.singleton @@ ConstrConsistent (u1, u2)
@@ -291,13 +287,7 @@ let generate_constraints env e b =
           )
       | Const c ->
           let u_a = b in
-          let u = begin
-            match c with
-            | ConstBool _ -> TyBool
-            | ConstInt _ -> TyInt
-            | ConstUnit -> TyUnit
-            end
-          in
+          let u = type_of_const c in
           u, u_a, Constraints.empty
       | BinOp (op, e1, e2) ->
           let ui1, ui2, ui = type_of_binop op in
@@ -363,7 +353,7 @@ let generate_constraints env e b =
                   @@ Constraints.union c4
                   @@ Constraints.union c5
                   @@ Constraints.singleton
-                  @@ ConstrConsistent (u_1, TyBool) in
+                  @@ ConstrConsistent (u_1, TyBase TyBool) in
           u, u_a, c
       | Consq (e1, e2) ->
           let u_g = b in
@@ -372,7 +362,7 @@ let generate_constraints env e b =
           let c = Constraints.union c1
                   @@ Constraints.union c2
                   @@ Constraints.singleton
-                  @@ ConstrConsistent (u_1, TyUnit) in
+                  @@ ConstrConsistent (u_1, TyBase TyUnit) in
           u_2, u_a, c
     in
     (* logging *)
@@ -456,13 +446,7 @@ module GSR = struct
           raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
       end
     | Const c ->
-        let u = begin
-          match c with
-          | ConstBool _ -> TyBool
-          | ConstInt _ -> TyInt
-          | ConstUnit -> TyUnit
-          end
-        in
+        let u = type_of_const c in
         CSR.Const c, u, u_b
     | BinOp (op, e1, e2) ->
         let ui1, ui2, ui = type_of_binop op in
@@ -516,9 +500,9 @@ module GSR = struct
         let u = meet u2 u3 in
         let k2 = fresh_var () in
         let k3 = fresh_var () in
-        if is_consistent u1 TyBool then
+        if is_consistent u1 @@ TyBase TyBool then
           CSR.If (
-            CSR.Cast (f1, u1, TyBool),
+            CSR.Cast (f1, u1, (TyBase TyBool)),
             CSR.Shift (k2, CSR.App (
               CSR.Cast (CSR.Var k2, TyFun (u, u_a, u_a, u_a),
                                     TyFun (u, u_a, u_a, u_a2)),
@@ -534,8 +518,8 @@ module GSR = struct
         let u_g = u_b in
         let f1, u1, u_b = translate env e1 u_g in
         let f2, u2, u_a = translate env e2 u_b in
-        if is_consistent u1 TyUnit then
-          CSR.Consq ((CSR.Cast (f1, u1, TyUnit)), f2), u2, u_a
+        if is_consistent u1 @@ TyBase TyUnit then
+          CSR.Consq ((CSR.Cast (f1, u1, TyBase TyUnit)), f2), u2, u_a
         else
           raise @@ Type_error "consq: not consistent"
 end

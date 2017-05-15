@@ -5,7 +5,7 @@ open GSR
 
 %token LPAREN RPAREN SEMI SEMISEMI COLON SLASH CARET SHARP
 %token PLUS MINUS STAR QUESTION
-%token FUN RARROW TRUE FALSE INT BOOL SHIFT RESET
+%token FUN RARROW TRUE FALSE INT BOOL UNIT SHIFT RESET
 %token IF THEN ELSE
 %token EQUAL GT LT
 
@@ -63,8 +63,9 @@ Type :
 
 AType :
   | LPAREN Type RPAREN { $2 }
-  | INT { TyInt }
-  | BOOL { TyBool }
+  | INT { TyBase TyInt }
+  | BOOL { TyBase TyBool }
+  | UNIT { TyBase TyUnit }
   | QUESTION { TyDyn }
 
 OptionalAnswerTypeAnnot :

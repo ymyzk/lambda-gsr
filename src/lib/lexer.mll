@@ -6,6 +6,7 @@ let reservedWords = [
   ("false", Parser.FALSE);
   ("int", Parser.INT);
   ("bool", Parser.BOOL);
+  ("unit", Parser.UNIT);
   ("shift", Parser.SHIFT);
   ("reset", Parser.RESET);
   ("if", Parser.IF);
