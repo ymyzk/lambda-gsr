@@ -65,11 +65,11 @@ let pp_print_constr ppf = function
 let pp_print_constraints ppf c =
   pp_print_list pp_print_constr ppf (Constraints.to_list c) ~pp_sep:pp_sep
 
-let string_of_substitution (x, t) =
-  Printf.sprintf "x%d=%s" x @@ string_of_type t
+let pp_print_subst ppf (x, t) =
+  fprintf ppf "x%a=%a" pp_print_int x pp_print_string (string_of_type t)
 
-let string_of_substitutions s =
-  String.concat ", " @@ List.map string_of_substitution s
+let pp_print_substitutions ppf s =
+  pp_print_list pp_print_subst ppf s ~pp_sep:pp_sep
 
 module GSR = struct
   open GSR

@@ -422,8 +422,10 @@ let infer ?(formatter=None) env e b =
     | _ -> ()
   end;
   let s = unify c in
-  if debug then
-    prerr_endline @@ "Substitutions: " ^ Pp.string_of_substitutions s;
+  begin match formatter with
+    | Some formatter -> Format.fprintf formatter "Substitutions: %a\n" Pp.pp_print_substitutions s
+    | _ -> ()
+  end;
   let e = subst_exp_substitutions e s in
   let u = subst_type_substitutions u s in
   let a = subst_type_substitutions a s in
