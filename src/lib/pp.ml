@@ -102,13 +102,13 @@ module CSR = struct
     | Const c -> string_of_const c
     | BinOp (op, e1, e2) ->
         sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
-    | Fun (x, x_t, e) ->
-        sprintf "fun %s -> %s" (string_of_type_annot x x_t) (string_of_exp e)
+    | Fun (g, x, x_t, e) ->
+        sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
     | App (x, y) -> sprintf "(%s) (%s)" (string_of_exp x) (string_of_exp y)
-    | Shift (k, e) ->
-        sprintf "shift %s -> (%s)" k (string_of_exp e)
-    | Reset e ->
-        sprintf "reset (%s)" (string_of_exp e)
+    | Shift (k, k_t, e) ->
+        sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
+    | Reset (e, u) ->
+        sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
     | If (e1, e2, e3) ->
         sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
     | Consq (e1, e2) ->

@@ -459,7 +459,7 @@ let infer ?(debug=false) env e b =
     | Fun (u_g, x, u_1, e) ->
         let u_a = u_b in
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
-        CSR.Fun (x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_a
+        CSR.Fun (u_g, x, u_1, f), TyFun (u_1, u_b, u_2, u_g), u_a
     | App (e1, e2) ->
         let f1, u1, u_g = translate env e1 u_b in
         let f2, u2, u_b = translate env e2 u_g in
@@ -477,9 +477,10 @@ let infer ?(debug=false) env e b =
         let k' = fresh_var () in
         begin match is_consistent u_d u_d', is_consistent (codc u_s) (codf u_s) with
           | true, true ->
-              CSR.Shift (k',
-                         CSR.App (CSR.Fun (k, u_s, CSR.Cast(f, u_d, u_d')),
-                                  CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
+              CSR.Shift (
+                k', TyFun (domf u_s, u_g, domc u_s, u_g),
+                CSR.App (CSR.Fun (u_b, k, u_s, CSR.Cast(f, u_d, u_d')),
+                         CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
               domf u_s,
               domc u_s
           | _ -> raise @@ Type_error "shift: not consistent"
@@ -488,7 +489,7 @@ let infer ?(debug=false) env e b =
         let u_a = u_b in
         let f, u_b, u_b' = translate env e u in
         if is_consistent u_b u_b' then
-          CSR.Reset (CSR.Cast (f, u_b, u_b')), u, u_a
+          CSR.Reset (CSR.Cast (f, u_b, u_b'), u), u, u_a
         else
           raise @@ Type_error "reset: not consistent"
     | If (e1, e2, e3) ->
@@ -502,11 +503,11 @@ let infer ?(debug=false) env e b =
         if is_consistent u1 @@ TyBase TyBool then
           CSR.If (
             CSR.Cast (f1, u1, (TyBase TyBool)),
-            CSR.Shift (k2, CSR.App (
+            CSR.Shift (k2, TyFun (u, u_a, u_a, u_a), CSR.App (
               CSR.Cast (CSR.Var k2, TyFun (u, u_a, u_a, u_a),
                                     TyFun (u, u_a, u_a, u_a2)),
               CSR.Cast(f2, u2, u))),
-            CSR.Shift (k3, CSR.App (
+            CSR.Shift (k3, TyFun (u, u_a, u_a, u_a), CSR.App (
               CSR.Cast (CSR.Var k3, TyFun (u, u_a, u_a, u_a),
                                     TyFun (u, u_a, u_a, u_a3)),
               CSR.Cast(f3, u3, u)))

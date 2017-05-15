@@ -78,10 +78,10 @@ module CSR = struct
     | Var of id
     | Const of const
     | BinOp of binop * exp * exp
-    | Fun of id * ty * exp
+    | Fun of ty * id * ty * exp
     | App of exp * exp
-    | Shift of id * exp
-    | Reset of exp
+    | Shift of id * ty * exp
+    | Reset of exp * ty
     | If of exp * exp * exp
     | Consq of exp * exp
     | Cast of exp * ty * ty

@@ -40,7 +40,7 @@ let rec eval exp env cont = match exp with
           | Lt, IntV x1, IntV x2 -> BoolV (x1 < x2)
           | _ -> raise @@ Eval_error "binop"
         end
-  | Fun (x, _, f) ->
+  | Fun (_, x, _, f) ->
       cont @@ FunV (fun v -> fun c -> eval f (Environment.add x v env) c)
   | App (f1, f2) ->
       eval f1 env @@
@@ -50,10 +50,10 @@ let rec eval exp env cont = match exp with
             | FunV f -> f v2 cont
             | _ -> raise @@ Eval_error "application"
           end
-  | Shift (k, f) ->
+  | Shift (k, _, f) ->
       let env' = Environment.add k (FunV (fun v -> fun c -> c (cont v))) env in
       eval f env' @@ fun x -> x
-  | Reset f ->
+  | Reset (f, _) ->
       cont @@ eval f env @@ fun x -> x
   | If (f1, f2, f3) ->
       eval f1 env @@
