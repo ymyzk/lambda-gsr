@@ -118,17 +118,17 @@ module CSR = struct
     | Cast (e, u1, u2) ->
         Printf.sprintf "(%s : %s => %s)" (string_of_exp e) (string_of_type u1) (string_of_type u2)
 
-  let string_of_tag = function
-    | P p -> "'a" ^ string_of_int p
-    | B -> "bool"
-    | I -> "int"
-    | U -> "unit"
-    | Ar -> "*/* -> */*"
+  let pp_print_tag ppf = function
+    | P p -> fprintf ppf "'a%d" p
+    | B -> pp_print_string ppf "bool"
+    | I -> pp_print_string ppf "int"
+    | U -> pp_print_string ppf "unit"
+    | Ar -> pp_print_string ppf "*/* -> */*"
 
-  let rec string_of_value = function
-    | IntV i -> string_of_int i
-    | BoolV b -> string_of_bool b
-    | UnitV -> "()"
-    | FunV _ -> "<fun>"
-    | Tagged (t, v) -> Printf.sprintf "%s : %s => ?" (string_of_value v) (string_of_tag t)
+  let rec pp_print_value ppf = function
+    | IntV i -> pp_print_int ppf i
+    | BoolV b -> pp_print_bool ppf b
+    | UnitV -> pp_print_string ppf "()"
+    | FunV _ -> pp_print_string ppf "<fun>"
+    | Tagged (t, v) -> fprintf ppf "%a : %a => ?" pp_print_value v pp_print_tag t
 end

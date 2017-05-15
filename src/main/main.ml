@@ -42,7 +42,7 @@ let rec read_eval_print lexeme dirs =
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
         let v = Eval.eval f env (fun x -> x) in
-        print_endline @@ Printf.sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
+        fprintf std_formatter "- : %s = %a\n" (Pp.string_of_type u) Pp.CSR.pp_print_value v;
         read_eval_print dirs
     | Syntax.GSR.Directive d ->
         begin match d with
@@ -71,7 +71,7 @@ let rec read_eval_print lexeme dirs =
       prerr_endline @@ Printf.sprintf "Eval_error: %s" message;
       read_eval_print dirs
   | Eval.Blame (value, message) ->
-      prerr_endline @@ Printf.sprintf "Blame: %s => %s" (Pp.CSR.string_of_value value) message;
+      fprintf std_formatter "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
       read_eval_print dirs
 
 let () =
