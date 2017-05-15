@@ -4,12 +4,13 @@ type directives = {
   debug: bool
 }
 
-let rec read_type_print dirs =
+let rec read_eval_print lexeme dirs =
+  let read_eval_print = read_eval_print lexeme in
   print_string "# ";
   flush stdout;
   try
     let env = Syntax.Environment.empty in
-    let e = Parser.toplevel Lexer.main @@ Lexing.from_channel stdin in
+    let e = Parser.toplevel Lexer.main lexeme in
     begin match e with
     | Syntax.GSR.Exp e ->
         let u_b = Typing.fresh_tyvar () in
@@ -41,29 +42,31 @@ let rec read_type_print dirs =
         let v = Eval.eval f env (fun x -> x) in
         (* TODO: check types in λCSR *)
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
-        read_type_print dirs
+        read_eval_print dirs
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
               prerr_endline @@ "debug mode " ^ if b then "enabled" else "disabled";
-              read_type_print { debug = b }
+              read_eval_print { debug = b }
           | _ ->
               prerr_endline "unsupported directive";
-              read_type_print dirs
+              read_eval_print dirs
         end
     end
   with
   | Failure message ->
       prerr_endline @@ sprintf "Failure: %s" message;
-      read_type_print dirs
+      read_eval_print dirs
   | Parser.Error -> (* Menhir *)
       prerr_endline @@ sprintf "Parser.Error";
-      read_type_print dirs
+      read_eval_print dirs
   | Typing.Type_error message ->
       prerr_endline @@ sprintf "Type_error: %s" message;
-      read_type_print dirs
+      read_eval_print dirs
   | Eval.Eval_error message ->
       prerr_endline @@ sprintf "Eval_error: %s" message;
-      read_type_print dirs
+      read_eval_print dirs
 
-let () = read_type_print { debug = false }
+let () =
+  let lexeme = Lexing.from_channel stdin in
+  read_eval_print lexeme { debug = false }
