@@ -1,8 +1,8 @@
 open Syntax
 
 type constr =
-  | ConstrEqual of ty * ty
-  | ConstrConsistent of ty * ty
+  | CEqual of ty * ty
+  | CConsistent of ty * ty
 
 module IConstraints = Set.Make (
   struct

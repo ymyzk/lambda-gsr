@@ -57,8 +57,8 @@ let string_of_type_annot x t = sprintf "(%s: %s)" x @@ string_of_type t
 let string_of_answer_type_annot t = sprintf "^%s" @@ string_of_type t
 
 let string_of_constr = function
-  | ConstrEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)
-  | ConstrConsistent (u1, u2) -> (string_of_type u1) ^ "~" ^ (string_of_type u2)
+  | CEqual (u1, u2) -> (string_of_type u1) ^ "=" ^ (string_of_type u2)
+  | CConsistent (u1, u2) -> (string_of_type u1) ^ "~" ^ (string_of_type u2)
 
 let string_of_constraints c =
   String.concat ", " @@ Constraints.map string_of_constr c

@@ -96,8 +96,8 @@ let rec subst_exp x t e = GSR.map (subst_type x t) (subst_exp x t) e
 
 (* [x:=t]c *)
 let subst_constraint x t = function
-  | ConstrEqual (u1, u2) -> ConstrEqual (subst_type x t u1, subst_type x t u2)
-  | ConstrConsistent (u1, u2) -> ConstrConsistent (subst_type x t u1, subst_type x t u2)
+  | CEqual (u1, u2) -> CEqual (subst_type x t u1, subst_type x t u2)
+  | CConsistent (u1, u2) -> CConsistent (subst_type x t u1, subst_type x t u2)
 
 (* [x:=t]C *)
 let subst_constraints x t (c : constr list) =
@@ -205,7 +205,7 @@ module GSR = struct
   let generate_constraints_domf_eq = function
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        x1, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
+        x1, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (u1, _, _, _) -> u1, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
     | _ -> raise @@ Type_error "error"
@@ -214,7 +214,7 @@ module GSR = struct
   let generate_constraints_domc_eq = function
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        x3, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
+        x3, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, _, u3, _) -> u3, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
     | _ -> raise @@ Type_error "error"
@@ -223,7 +223,7 @@ module GSR = struct
   let generate_constraints_codc_eq = function
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        x2, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
+        x2, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, u2, _, _) -> u2, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
     | _ -> raise @@ Type_error "error"
@@ -232,7 +232,7 @@ module GSR = struct
   let generate_constraints_codf_eq = function
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        x4, Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
+        x4, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, _, _, u4) -> u4, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
     | _ -> raise @@ Type_error "error"
@@ -241,30 +241,30 @@ module GSR = struct
   let generate_constraints_domf_con u1 u2 = match u1 with
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        let c = Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
-        Constraints.add (ConstrConsistent (x1, u2)) c
+        let c = Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
+        Constraints.add (CConsistent (x1, u2)) c
     | TyFun (u11, _, _, _) ->
-        Constraints.singleton @@ ConstrConsistent (u11, u2)
-    | TyDyn -> Constraints.singleton @@ ConstrConsistent (u1, u2)
+        Constraints.singleton @@ CConsistent (u11, u2)
+    | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
     | _ -> raise @@ Type_error "error"
 
   (* codf ~ *)
   let generate_constraints_codf_con u1 u2 = match u1 with
     | TyVar x ->
         let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-        let c = Constraints.singleton @@ ConstrEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
-        Constraints.add (ConstrConsistent (x4, u2)) c
+        let c = Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4))) in
+        Constraints.add (CConsistent (x4, u2)) c
     | TyFun (_, _, _, u14) ->
-        Constraints.singleton @@ ConstrConsistent (u14, u2)
-    | TyDyn -> Constraints.singleton @@ ConstrConsistent (u1, u2)
+        Constraints.singleton @@ CConsistent (u14, u2)
+    | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
     | _ -> raise @@ Type_error "error"
 
   let rec generate_constraints_meet u1 u2 = match u1, u2 with
     | TyBase b1, TyBase b2 when b1 = b2 -> TyBase b1, Constraints.empty
-    | _, TyDyn -> u1, Constraints.singleton @@ ConstrConsistent (u1, TyDyn)
-    | TyDyn, _ -> u2, Constraints.singleton @@ ConstrConsistent (TyDyn, u2)
-    | TyVar _, _ -> u1, Constraints.singleton @@ ConstrConsistent (u1, u2)
-    | _, TyVar _ -> u2, Constraints.singleton @@ ConstrConsistent (u1, u2)
+    | _, TyDyn -> u1, Constraints.singleton @@ CConsistent (u1, TyDyn)
+    | TyDyn, _ -> u2, Constraints.singleton @@ CConsistent (TyDyn, u2)
+    | TyVar _, _ -> u1, Constraints.singleton @@ CConsistent (u1, u2)
+    | _, TyVar _ -> u2, Constraints.singleton @@ CConsistent (u1, u2)
     | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
         let u1, c1 = generate_constraints_meet u11 u21 in
         let u2, c2 = generate_constraints_meet u12 u22 in
@@ -298,9 +298,9 @@ module GSR = struct
             let u2, u_a2, c2 = generate_constraints env e2 u_a1 in
             let c = Constraints.union c1
                     @@ Constraints.union c2
-                    @@ Constraints.add (ConstrConsistent (u1, ui1))
+                    @@ Constraints.add (CConsistent (u1, ui1))
                     @@ Constraints.singleton
-                    @@ ConstrConsistent (u2, ui2) in
+                    @@ CConsistent (u2, ui2) in
             ui, u_a2, c
         | Fun (u_g, x, u_1, e) ->
             let u_a = b in
@@ -335,12 +335,12 @@ module GSR = struct
                     @@ Constraints.union c5
                     @@ Constraints.union c6
                     @@ Constraints.singleton
-                    @@ ConstrConsistent (u_d, u_d') in
+                    @@ CConsistent (u_d, u_d') in
             u, u_a, c
         | Reset (e, u) ->
             let u_a = b in
             let u_b, u_b', c = generate_constraints env e u in
-            let c = Constraints.add (ConstrConsistent (u_b, u_b')) c in
+            let c = Constraints.add (CConsistent (u_b, u_b')) c in
             u, u_a, c
         | If (e1, e2, e3) ->
             let u_b = b in
@@ -355,7 +355,7 @@ module GSR = struct
                     @@ Constraints.union c4
                     @@ Constraints.union c5
                     @@ Constraints.singleton
-                    @@ ConstrConsistent (u_1, TyBase TyBool) in
+                    @@ CConsistent (u_1, TyBase TyBool) in
             u, u_a, c
         | Consq (e1, e2) ->
             let u_g = b in
@@ -364,7 +364,7 @@ module GSR = struct
             let c = Constraints.union c1
                     @@ Constraints.union c2
                     @@ Constraints.singleton
-                    @@ ConstrConsistent (u_1, TyBase TyUnit) in
+                    @@ CConsistent (u_1, TyBase TyUnit) in
             u_2, u_a, c
       in
       (* logging *)
@@ -382,27 +382,27 @@ let unify constraints : substitutions =
     | [] -> []
     | constr :: c -> begin
       match constr with
-      | ConstrConsistent (u1, u2) when u1 = u2 && is_bvp_type u1 ->
+      | CConsistent (u1, u2) when u1 = u2 && is_bvp_type u1 ->
           unify c
-      | ConstrConsistent (TyDyn, _)
-      | ConstrConsistent (_, TyDyn) ->
+      | CConsistent (TyDyn, _)
+      | CConsistent (_, TyDyn) ->
           unify c
-      | ConstrConsistent (TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24)) ->
-          unify @@ ConstrConsistent (u11, u21) :: ConstrConsistent (u12, u22) :: ConstrConsistent (u13, u23) :: ConstrConsistent (u14, u24) :: c
-      | ConstrConsistent (u, TyVar x) when not @@ is_tyvar u ->
-          unify @@ ConstrConsistent (TyVar x, u) :: c
-      | ConstrConsistent (TyVar x, u) when is_bvp_type u ->
-          unify @@ ConstrEqual (TyVar x, u) :: c
-      | ConstrConsistent (TyVar x, TyFun (u1, u2, u3, u4)) when not @@ Variables.mem x (tyvars (TyFun (u1, u2, u3, u4))) ->
+      | CConsistent (TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24)) ->
+          unify @@ CConsistent (u11, u21) :: CConsistent (u12, u22) :: CConsistent (u13, u23) :: CConsistent (u14, u24) :: c
+      | CConsistent (u, TyVar x) when not @@ is_tyvar u ->
+          unify @@ CConsistent (TyVar x, u) :: c
+      | CConsistent (TyVar x, u) when is_bvp_type u ->
+          unify @@ CEqual (TyVar x, u) :: c
+      | CConsistent (TyVar x, TyFun (u1, u2, u3, u4)) when not @@ Variables.mem x (tyvars (TyFun (u1, u2, u3, u4))) ->
           let x1, x2, x3, x4 = fresh_tyvar (), fresh_tyvar (), fresh_tyvar (), fresh_tyvar () in
-          unify @@ ConstrEqual (TyVar x, TyFun (x1, x2, x3, x4)) :: ConstrConsistent (x1, u1) :: ConstrConsistent (x2, u2) :: ConstrConsistent (x3, u3) :: ConstrConsistent (x4, u4) :: c
-      | ConstrEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
+          unify @@ CEqual (TyVar x, TyFun (x1, x2, x3, x4)) :: CConsistent (x1, u1) :: CConsistent (x2, u2) :: CConsistent (x3, u3) :: CConsistent (x4, u4) :: c
+      | CEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
           unify c
-      | ConstrEqual (TyFun (t11, t12, t13, t14), TyFun (t21, t22, t23, t24)) when is_static_types [t11; t12; t13; t14; t21; t22; t23; t24] ->
-          unify @@ ConstrEqual (t11, t21) :: ConstrEqual (t12, t22) :: ConstrEqual (t13, t23) :: ConstrEqual (t14, t24) :: c
-      | ConstrEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
-          unify @@ ConstrEqual (TyVar x, t) :: c
-      | ConstrEqual (TyVar x, t) when not @@ Variables.mem x (tyvars t) ->
+      | CEqual (TyFun (t11, t12, t13, t14), TyFun (t21, t22, t23, t24)) when is_static_types [t11; t12; t13; t14; t21; t22; t23; t24] ->
+          unify @@ CEqual (t11, t21) :: CEqual (t12, t22) :: CEqual (t13, t23) :: CEqual (t14, t24) :: c
+      | CEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
+          unify @@ CEqual (TyVar x, t) :: c
+      | CEqual (TyVar x, t) when not @@ Variables.mem x (tyvars t) ->
           let s = unify @@ subst_constraints x t c in
           (x, t) :: s
       | _ ->
