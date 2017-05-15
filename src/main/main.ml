@@ -13,13 +13,13 @@ let rec read_eval_print lexeme dirs =
     let e = Parser.toplevel Lexer.main lexeme in
     begin match e with
     | Syntax.GSR.Exp e ->
-        let u_b = Typing.fresh_tyvar () in
+        let u_b = Typing.GSR.fresh_tyvar () in
         if dirs.debug then begin
           prerr_endline "Input:";
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
-        let e, u, u_a, u_b = Typing.infer env e u_b ~debug:dirs.debug in
+        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~debug:dirs.debug in
         if dirs.debug then begin
           prerr_endline "GSR:";
           prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;

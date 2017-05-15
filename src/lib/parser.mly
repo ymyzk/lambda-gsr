@@ -33,7 +33,7 @@ toplevel :
 Expr :
   | Expr SEMI Expr { Consq ($1, $3) }
   | IF Expr THEN Expr ELSE Expr { If ($2, $4, $6) } %prec prec_if
-  | FUN OptionalAnswerTypeAnnot ID RARROW Expr { Fun ($2, $3, Typing.fresh_tyvar (), $5) }
+  | FUN OptionalAnswerTypeAnnot ID RARROW Expr { Fun ($2, $3, Typing.GSR.fresh_tyvar (), $5) }
   | FUN OptionalAnswerTypeAnnot LPAREN ID COLON Type RPAREN RARROW Expr { Fun ($2, $4, $6, $9) }
   | Expr EQUAL Expr { BinOp (Equal, $1, $3) }
   | Expr GT Expr { BinOp (Gt, $1, $3) }
@@ -44,7 +44,7 @@ Expr :
   | Expr MINUS Expr { BinOp (Minus, $1, $3) }
   | SimpleExpr SimpleExpr { App ($1, $2) } (* %prec prec_app *)
   | RESET OptionalAnswerTypeAnnot Expr { Reset ($3, $2) } %prec prec_app
-  | SHIFT ID RARROW Expr { Shift ($2, Typing.fresh_tyvar (), $4) } %prec prec_app
+  | SHIFT ID RARROW Expr { Shift ($2, Typing.GSR.fresh_tyvar (), $4) } %prec prec_app
   | SHIFT LPAREN ID COLON Type RPAREN RARROW Expr { Shift ($3, $5, $8) } %prec prec_app
   | SimpleExpr { $1 }
 
@@ -54,7 +54,7 @@ SimpleExpr :
   | FALSE { Const (ConstBool false) }
   | LPAREN RPAREN { Const ConstUnit }
   | ID { Var $1 }
-  | LPAREN Expr COLON COLON Type RPAREN { App (Fun (Typing.fresh_tyvar (), "x", $5, Var "x"), $2) }
+  | LPAREN Expr COLON COLON Type RPAREN { App (Fun (Typing.GSR.fresh_tyvar (), "x", $5, Var "x"), $2) }
   | LPAREN Expr RPAREN { $2 }
 
 Type :
@@ -69,7 +69,7 @@ AType :
   | QUESTION { TyDyn }
 
 OptionalAnswerTypeAnnot :
-  | { Typing.fresh_tyvar () }
+  | { Typing.GSR.fresh_tyvar () }
   | CARET Type { $2 }
 
 Directive :

@@ -8,7 +8,7 @@ let _ =
           let e = Parser.toplevel Lexer.main @@ Lexing.from_string x in
           begin match e with
           | Syntax.GSR.Exp e ->
-            let _, u, _, _ = Typing.infer empty e @@ Typing.fresh_tyvar () in
+            let _, u, _, _ = Typing.GSR.infer empty e @@ Typing.GSR.fresh_tyvar () in
             let s = Pp.string_of_type u in
             object%js
               val isSucceeded = Js._true

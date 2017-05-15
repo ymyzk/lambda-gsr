@@ -14,10 +14,12 @@ let test_is_static_type =
       "?", TyDyn, false;
     ]
 
-let test_tyvars =
-  List.map
+module GSR = struct
+  open Typing.GSR
+  let test_tyvars =
+    List.map
     (fun (l, t, e) -> l >:: fun _ -> assert_equal (tyvars t) e)
-    [
+      [
 (*
       "int", TyInt, Variables.empty;
       "?", TyDyn, Variables.empty;
@@ -26,7 +28,8 @@ let test_tyvars =
       "$0 -> $0", TyFun (TyVar 0, TyVar 0), Variables.singleton 0;
       "$0 -> $1", TyFun (TyVar 0, TyVar 1), Variables.add 1 @@ Variables.singleton 0
 *)
-    ]
+      ]
+end
 
 module CSR = struct
   open Syntax.GSR
@@ -53,7 +56,7 @@ end
 
 let suite = [
   "test_is_static_type">::: test_is_static_type;
-  "test_tyvars">::: test_tyvars;
+  "test_tyvars">::: GSR.test_tyvars;
   "test_subst_type">::: CSR.test_subst_type;
   "test_subst_exp">::: CSR.test_subst_exp;
 ]
