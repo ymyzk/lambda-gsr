@@ -55,6 +55,18 @@ let rec eval exp env cont = match exp with
       eval f env' @@ fun x -> x
   | Reset f ->
       cont @@ eval f env @@ fun x -> x
+  | If (f1, f2, f3) ->
+      eval f1 env @@
+        fun v1 -> begin match v1 with
+          | BoolV b -> if b then eval f2 env cont else eval f3 env cont
+          | _ -> raise @@ Eval_error "if"
+        end
+  | Consq (f1, f2) ->
+      eval f1 env @@
+        fun v1 -> begin match v1 with
+          | UnitV -> eval f2 env cont
+          | _ -> raise @@ Eval_error "consq"
+        end
   | Cast (f, u1, u2) ->
       eval f env @@ fun v -> cont @@ cast v u1 u2
 and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)

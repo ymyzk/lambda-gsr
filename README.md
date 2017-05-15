@@ -35,6 +35,8 @@ If type annotations are omitted, they are recovered by the type reconstruction a
 - Application: `e1 e2`
 - Shift: `shift (k: U) -> e`, `shift k -> e`
 - Reset: `reset^U e`, `reset e`
+- If: `if e1 then e2 else e3`
+- Sequence: `e1; e2`
 - Top-level input:
   - `e;;`
   - `#debug true;;`, `#debug false;;`

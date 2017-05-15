@@ -508,4 +508,34 @@ module GSR = struct
           CSR.Reset (CSR.Cast (f, u_b, u_b')), u, u_a
         else
           raise @@ Type_error "reset: not consistent"
+    | If (e1, e2, e3) ->
+        let f1, u1, u_d = translate env e1 u_b in
+        let f2, u2, u_a2 = translate env e2 u_d in
+        let f3, u3, u_a3 = translate env e3 u_d in
+        let u_a = meet u_a2 u_a3 in
+        let u = meet u2 u3 in
+        let k2 = fresh_var () in
+        let k3 = fresh_var () in
+        if is_consistent u1 TyBool then
+          CSR.If (
+            CSR.Cast (f1, u1, TyBool),
+            CSR.Shift (k2, CSR.App (
+              CSR.Cast (CSR.Var k2, TyFun (u, u_a, u_a, u_a),
+                                    TyFun (u, u_a, u_a, u_a2)),
+              CSR.Cast(f2, u2, u))),
+            CSR.Shift (k3, CSR.App (
+              CSR.Cast (CSR.Var k3, TyFun (u, u_a, u_a, u_a),
+                                    TyFun (u, u_a, u_a, u_a3)),
+              CSR.Cast(f3, u3, u)))
+          ), u, u_a
+        else
+          raise @@ Type_error "if: not consistent"
+    | Consq (e1, e2) ->
+        let u_g = u_b in
+        let f1, u1, u_b = translate env e1 u_g in
+        let f2, u2, u_a = translate env e2 u_b in
+        if is_consistent u1 TyUnit then
+          CSR.Consq ((CSR.Cast (f1, u1, TyUnit)), f2), u2, u_a
+        else
+          raise @@ Type_error "consq: not consistent"
 end
