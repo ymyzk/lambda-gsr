@@ -259,22 +259,22 @@ module GSR = struct
     | TyDyn -> Constraints.singleton @@ ConstrConsistent (u1, u2)
     | _ -> raise @@ Type_error "error"
 
-  let rec generate_constraints_join u1 u2 = match u1, u2 with
+  let rec generate_constraints_meet u1 u2 = match u1, u2 with
     | TyBase b1, TyBase b2 when b1 = b2 -> TyBase b1, Constraints.empty
     | _, TyDyn -> u1, Constraints.singleton @@ ConstrConsistent (u1, TyDyn)
     | TyDyn, _ -> u2, Constraints.singleton @@ ConstrConsistent (TyDyn, u2)
     | TyVar _, _ -> u1, Constraints.singleton @@ ConstrConsistent (u1, u2)
     | _, TyVar _ -> u2, Constraints.singleton @@ ConstrConsistent (u1, u2)
     | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
-        let u1, c1 = generate_constraints_join u11 u21 in
-        let u2, c2 = generate_constraints_join u12 u22 in
-        let u3, c3 = generate_constraints_join u13 u23 in
-        let u4, c4 = generate_constraints_join u14 u24 in
+        let u1, c1 = generate_constraints_meet u11 u21 in
+        let u2, c2 = generate_constraints_meet u12 u22 in
+        let u3, c3 = generate_constraints_meet u13 u23 in
+        let u4, c4 = generate_constraints_meet u14 u24 in
         let c = Constraints.union c1 c2 in
         let c = Constraints.union c c3 in
         let c = Constraints.union c c4 in
         TyFun (u1, u2, u3, u4), c
-    | _ -> raise @@ Type_error "error: generate_constraints_join"
+    | _ -> raise @@ Type_error "error: generate_constraints_meet"
 
   let generate_constraints env e b =
     let rec generate_constraints env e b =
@@ -327,7 +327,7 @@ module GSR = struct
             let u, c3 = generate_constraints_domf_eq u_s in
             let u_g1, c4 = generate_constraints_codc_eq u_s in
             let u_g2, c5 = generate_constraints_codf_eq u_s in
-            let _, c6 = generate_constraints_join u_g1 u_g2 in
+            let _, c6 = generate_constraints_meet u_g1 u_g2 in
             let c = Constraints.union c1
                     @@ Constraints.union c2
                     @@ Constraints.union c3
@@ -347,8 +347,8 @@ module GSR = struct
             let u_1, u_d, c1 = generate_constraints env e1 u_b in
             let u_2, u_a2, c2 = generate_constraints env e2 u_d in
             let u_3, u_a3, c3 = generate_constraints env e3 u_d in
-            let u_a, c4 = generate_constraints_join u_a2 u_a3 in
-            let u, c5 = generate_constraints_join u_2 u_3 in
+            let u_a, c4 = generate_constraints_meet u_a2 u_a3 in
+            let u, c5 = generate_constraints_meet u_2 u_3 in
             let c = Constraints.union c1
                     @@ Constraints.union c2
                     @@ Constraints.union c3
