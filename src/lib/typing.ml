@@ -436,6 +436,8 @@ let infer ?(debug=false) env e b =
   let _, b = subst_tyvars tvm b in
   e, u, a, b
 
+  let cast f u1 u2 = if u1 = u2 then f else CSR.Cast (f, u1, u2)
+
   let rec translate env e u_b = match e with
     | Var x -> begin
         try
@@ -452,7 +454,7 @@ let infer ?(debug=false) env e b =
         let f1, u1, u1_a = translate env e1 u_b in
         let f2, u2, u2_a = translate env e2 u1_a in
         begin match is_consistent u1 ui1, is_consistent u2 ui2 with
-          | true, true -> CSR.BinOp (op, CSR.Cast (f1, u1, ui1), CSR.Cast (f2, u2, ui2)), ui, u2_a
+          | true, true -> CSR.BinOp (op, (cast f1 u1 ui1), (cast f2 u2 ui2)), ui, u2_a
           | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
           | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
         end
@@ -465,8 +467,8 @@ let infer ?(debug=false) env e b =
         let f2, u2, u_b = translate env e2 u_g in
         begin match is_consistent (codf u1) u_b, is_consistent (domf u1) u2 with
           | true, true ->
-              CSR.App (CSR.Cast (f1, u1, TyFun (domf u1, codc u1, domc u1, u_b)),
-                       CSR.Cast(f2, u2, domf u1)),
+              CSR.App ((cast f1 u1 (TyFun (domf u1, codc u1, domc u1, u_b))),
+                       (cast f2 u2 (domf u1))),
               domc u1,
               codc u1
           | _ -> raise @@ Type_error "app: not consistent"
@@ -477,10 +479,17 @@ let infer ?(debug=false) env e b =
         let k' = fresh_var () in
         begin match is_consistent u_d u_d', is_consistent (codc u_s) (codf u_s) with
           | true, true ->
-              CSR.Shift (
-                k', TyFun (domf u_s, u_g, domc u_s, u_g),
-                CSR.App (CSR.Fun (u_b, k, u_s, CSR.Cast(f, u_d, u_d')),
-                         CSR.Cast (CSR.Var k', TyFun (domf u_s, u_g, domc u_s, u_g), u_s))),
+              let f' = cast f u_d u_d' in
+              let u_s' = TyFun (domf u_s, u_g, domc u_s, u_g) in
+              begin
+                if u_s = u_s' then
+                  CSR.Shift (k, u_s', f')
+                else
+                  CSR.Shift (
+                    k', u_s',
+                    CSR.App (CSR.Fun (u_b, k, u_s, f'),
+                             CSR.Cast (CSR.Var k', u_s', u_s)))
+              end,
               domf u_s,
               domc u_s
           | _ -> raise @@ Type_error "shift: not consistent"
@@ -489,7 +498,7 @@ let infer ?(debug=false) env e b =
         let u_a = u_b in
         let f, u_b, u_b' = translate env e u in
         if is_consistent u_b u_b' then
-          CSR.Reset (CSR.Cast (f, u_b, u_b'), u), u, u_a
+          CSR.Reset ((cast f u_b u_b'), u), u, u_a
         else
           raise @@ Type_error "reset: not consistent"
     | If (e1, e2, e3) ->
@@ -500,17 +509,22 @@ let infer ?(debug=false) env e b =
         let u = meet u2 u3 in
         let k2 = fresh_var () in
         let k3 = fresh_var () in
+        let cast_e k' f' u' u_a' =
+          let f' = cast f' u' u in
+          if u_a = u_a' then
+            f'
+          else
+            CSR.Shift (
+              k', TyFun (u, u_a, u_a, u_a),
+              CSR.App (
+                CSR.Cast (CSR.Var k', TyFun (u, u_a, u_a, u_a),
+                                      TyFun (u, u_a, u_a, u_a')),
+                f')) in
         if is_consistent u1 @@ TyBase TyBool then
           CSR.If (
-            CSR.Cast (f1, u1, (TyBase TyBool)),
-            CSR.Shift (k2, TyFun (u, u_a, u_a, u_a), CSR.App (
-              CSR.Cast (CSR.Var k2, TyFun (u, u_a, u_a, u_a),
-                                    TyFun (u, u_a, u_a, u_a2)),
-              CSR.Cast(f2, u2, u))),
-            CSR.Shift (k3, TyFun (u, u_a, u_a, u_a), CSR.App (
-              CSR.Cast (CSR.Var k3, TyFun (u, u_a, u_a, u_a),
-                                    TyFun (u, u_a, u_a, u_a3)),
-              CSR.Cast(f3, u3, u)))
+            (cast f1 u1 (TyBase TyBool)),
+            cast_e k2 f2 u2 u_a2,
+            cast_e k3 f3 u3 u_a3
           ), u, u_a
         else
           raise @@ Type_error "if: not consistent"
@@ -519,7 +533,7 @@ let infer ?(debug=false) env e b =
         let f1, u1, u_b = translate env e1 u_g in
         let f2, u2, u_a = translate env e2 u_b in
         if is_consistent u1 @@ TyBase TyUnit then
-          CSR.Consq ((CSR.Cast (f1, u1, TyBase TyUnit)), f2), u2, u_a
+          CSR.Consq ((cast f1 u1 (TyBase TyUnit)), f2), u2, u_a
         else
           raise @@ Type_error "consq: not consistent"
 end
