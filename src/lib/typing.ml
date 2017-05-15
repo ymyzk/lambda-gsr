@@ -523,3 +523,75 @@ let infer ?(debug=false) env e b =
         else
           raise @@ Type_error "consq: not consistent"
 end
+
+module CSR = struct
+  open Syntax.CSR
+
+  let rec type_of_exp env f ub = match f with
+    | Var x -> begin
+        try
+          let u = Environment.find x env in
+          u, ub
+        with Not_found ->
+          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+      end
+    | Const c ->
+        let u = type_of_const c in
+        u, ub
+    | BinOp (op, f1, f2) ->
+        let ui1, ui2, ui = type_of_binop op in
+        let u1, ua1 = type_of_exp env f1 ub in
+        let u2, ua2 = type_of_exp env f2 ua1 in
+        begin match u1 = ui1, u2 = ui2 with
+          | true, true -> ui, ua2
+          | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
+          | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
+        end
+    | Fun (ug, x, u1, f) ->
+        let ua = ub in
+        let u2, ub = type_of_exp (Environment.add x u1 env) f ug in
+        TyFun (u1, ub, u2, ug), ua
+    | App (f1, f2) ->
+        let ud = ub in
+        let u1, ug = type_of_exp env f1 ud in
+        let u2, ub = type_of_exp env f2 ug in
+        begin match u1, (codf u1) = ub, (domf u1) = u2 with
+          | TyFun _, true, true -> domc u1, codc u1
+          | _ -> raise @@ Type_error "app"
+        end
+    | Shift (k, us, f) ->
+        let ud, ud' = type_of_exp (Environment.add k us env) f ub in
+        begin match us, (codc us) = (codf us), ud = ud' with
+          | TyFun _, true, true -> domf us, domc us
+          | _ -> raise @@ Type_error "shift"
+        end
+    | Reset (f, u) ->
+        let ua = ub in
+        let ub, ub' = type_of_exp env f u in
+        if ub = ub' then
+          u, ua
+        else
+          raise @@ Type_error "reset"
+    | If (f1, f2, f3) ->
+        let u1, ud = type_of_exp env f1 ub in
+        let u2, ua2 = type_of_exp env f2 ud in
+        let u3, ua3 = type_of_exp env f3 ud in
+        begin match u1 = TyBase TyBool, u2 = u3, ua2 = ua3 with
+          | true, true, true -> u2, ua2
+          | _ -> raise @@ Type_error "if"
+        end
+    | Consq (f1, f2) ->
+        let ug = ub in
+        let u1, ub = type_of_exp env f1 ug in
+        let u2, ua = type_of_exp env f2 ub in
+        if u1 = TyBase TyUnit then
+          u2, ua
+        else
+          raise @@ Type_error "consq"
+    | Cast (f, u1, u2) ->
+        let u1', ua = type_of_exp env f ub in
+        begin match u1 = u1', is_consistent u1 u2 with
+          | true, true -> u2, ua
+          | _ -> raise @@ Type_error "cast"
+        end
+end

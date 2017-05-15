@@ -31,7 +31,9 @@ let rec read_eval_print lexeme dirs =
         (* Translation must not change types *)
         assert (u = u');
         assert (u_a = u_a');
-        (* TODO: check types in λCSR *)
+        let u'', u_a'' = Typing.CSR.type_of_exp env f u_b in
+        assert (u' = u'');
+        assert (u_a' = u_a'');
         if dirs.debug then begin
           prerr_endline "CSR:";
           prerr_endline @@ " f: " ^ Pp.CSR.string_of_exp f;
@@ -40,7 +42,6 @@ let rec read_eval_print lexeme dirs =
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
         let v = Eval.eval f env (fun x -> x) in
-        (* TODO: check types in λCSR *)
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_eval_print dirs
     | Syntax.GSR.Directive d ->
