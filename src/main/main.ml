@@ -31,7 +31,6 @@ let rec read_type_print dirs =
         assert (u = u');
         assert (u_a = u_a');
         (* TODO: check types in λCSR *)
-        let v = Eval.eval f env (fun x -> x) in
         if dirs.debug then begin
           prerr_endline "CSR:";
           prerr_endline @@ " f: " ^ Pp.CSR.string_of_exp f;
@@ -39,6 +38,7 @@ let rec read_type_print dirs =
           prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a';
           prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
         end;
+        let v = Eval.eval f env (fun x -> x) in
         (* TODO: check types in λCSR *)
         print_endline @@ sprintf "- : %s = %s" (Pp.string_of_type u) (Pp.CSR.string_of_value v);
         read_type_print dirs
