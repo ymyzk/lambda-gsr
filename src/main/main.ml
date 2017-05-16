@@ -5,21 +5,22 @@ type directives = {
 }
 
 let rec read_eval_print lexeme dirs =
+  let dirs = ref dirs in
   let read_eval_print = read_eval_print lexeme in
   fprintf std_formatter "# @?";
   flush stdout;
   ignore @@ flush_str_formatter ();
-  try
+  begin try
     let env = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main lexeme in
-    let ppf = if dirs.debug then std_formatter else str_formatter in
+    let ppf = if !dirs.debug then std_formatter else str_formatter in
     begin match e with
     | Syntax.GSR.Exp e ->
         let u_b = Typing.GSR.fresh_tyvar () in
         fprintf ppf "Input:\n e: %a\n Uβ: %a\n"
           Pp.GSR.pp_print_exp e
           Pp.pp_print_type u_b;
-        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~formatter:(if dirs.debug then Some std_formatter else None) in
+        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~formatter:(if !dirs.debug then Some std_formatter else None) in
         fprintf ppf "GSR:\n e: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
           Pp.GSR.pp_print_exp e
           Pp.pp_print_type u
@@ -40,37 +41,31 @@ let rec read_eval_print lexeme dirs =
         let v = Eval.eval f env (fun x -> x) in
         fprintf std_formatter "- : %a = %a\n"
           Pp.pp_print_type u
-          Pp.CSR.pp_print_value v;
-        read_eval_print dirs
+          Pp.CSR.pp_print_value v
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
               prerr_endline @@ "debug mode " ^ if b then "enabled" else "disabled";
-              read_eval_print { debug = b }
+              dirs := { debug = b }
           | _ ->
-              prerr_endline "unsupported directive";
-              read_eval_print dirs
+              prerr_endline "unsupported directive"
         end
     end
   with
   | Failure message ->
       prerr_endline @@ Printf.sprintf "Failure: %s" message;
-      read_eval_print dirs
   | Parser.Error -> (* Menhir *)
       prerr_endline @@ Printf.sprintf "Parser.Error";
-      read_eval_print dirs
   | Typing.Type_error message ->
       prerr_endline @@ Printf.sprintf "Type_error: %s" message;
-      read_eval_print dirs
   | Typing.Unification_error (message, c) ->
       fprintf std_formatter ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
-      read_eval_print dirs
   | Eval.Eval_error message ->
       prerr_endline @@ Printf.sprintf "Eval_error: %s" message;
-      read_eval_print dirs
   | Eval.Blame (value, message) ->
       fprintf std_formatter "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
-      read_eval_print dirs
+  end;
+  read_eval_print !dirs
 
 let () =
   let lexeme = Lexing.from_channel stdin in
