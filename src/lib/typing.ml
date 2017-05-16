@@ -415,7 +415,6 @@ let unify constraints : substitutions =
   unify @@ Constraints.map (fun x -> x) constraints
 
 let infer ?(formatter=None) env e b =
-  let debug = match formatter with None -> false | Some _ -> true in
   let u, a, c = generate_constraints env e b in
   begin match formatter with
     | Some formatter -> Format.fprintf formatter "Constraints: %a\n" Pp.pp_print_constraints c
@@ -430,12 +429,14 @@ let infer ?(formatter=None) env e b =
   let u = subst_type_substitutions u s in
   let a = subst_type_substitutions a s in
   let b = subst_type_substitutions b s in
-  if debug then begin
-    prerr_endline "After Substitution:";
-    prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
-    prerr_endline @@ " U: " ^ Pp.string_of_type u;
-    prerr_endline @@ " Uα: " ^ Pp.string_of_type a;
-    prerr_endline @@ " Uβ: " ^ Pp.string_of_type b
+  begin match formatter with
+    | Some formatter ->
+        Format.fprintf formatter "After Substitution:\n";
+        Format.fprintf formatter " e: %a\n" Pp.GSR.pp_print_exp e;
+        Format.fprintf formatter " U: %a\n" Pp.pp_print_type u;
+        Format.fprintf formatter " Uα: %a\n" Pp.pp_print_type a;
+        Format.fprintf formatter " Uβ: %a\n" Pp.pp_print_type b
+    | _ -> ()
   end;
   let tvm = TyVarMap.empty in
   let tvm, e = subst_exp_tyvars tvm e in
@@ -463,8 +464,10 @@ let infer ?(formatter=None) env e b =
         let f2, u2, u2_a = translate env e2 u1_a in
         begin match is_consistent u1 ui1, is_consistent u2 ui2 with
           | true, true -> CSR.BinOp (op, (cast f1 u1 ui1), (cast f2 u2 ui2)), ui, u2_a
+(*
           | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
           | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
+*)
         end
     | Fun (u_g, x, u_1, e) ->
         let u_a = u_b in
@@ -566,8 +569,10 @@ module CSR = struct
         let u2, ua2 = type_of_exp env f2 ua1 in
         begin match u1 = ui1, u2 = ui2 with
           | true, true -> ui, ua2
+(*
           | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
           | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
+*)
         end
     | Fun (ug, x, u1, f) ->
         let ua = ub in

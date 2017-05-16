@@ -5,22 +5,28 @@ open Syntax
 let pp_sep ppf () = fprintf ppf ", "
 
 (* binop -> string *)
-let string_of_binop = function
-  | Plus -> "+"
-  | Minus -> "-"
-  | Mult -> "*"
-  | Div -> "/"
-  | Equal -> "="
-  | Gt -> ">"
-  | Lt -> "<"
+let pp_print_binop ppf op =
+  pp_print_string ppf begin
+    match op with
+    | Plus -> "+"
+    | Minus -> "-"
+    | Mult -> "*"
+    | Div -> "/"
+    | Equal -> "="
+    | Gt -> ">"
+    | Lt -> "<"
+  end
 
-let string_of_base_type = function
-  | TyBool -> "bool"
-  | TyInt -> "int"
-  | TyUnit -> "unit"
+let pp_print_basety ppf b =
+  pp_print_string ppf begin
+    match b with
+    | TyBool -> "bool"
+    | TyInt -> "int"
+    | TyUnit -> "unit"
+  end
 
-let string_of_type t =
-  (*
+(*
+let pp_print_type ppf t =
   let params = ref [] in
   let string_of_typaram tp =
     let rec string_of_typaram i = function
@@ -32,41 +38,44 @@ let string_of_type t =
     "'" ^ String.make 1 @@ char_of_int @@ (int_of_char 'a') + i
   in
   *)
-  let rec string_of_type = function
-    | TyParam p -> "'a" ^ string_of_int p
-    (* | TyParam tp -> string_of_typaram tp *)
-    | TyVar x -> "'x" ^ string_of_int x
-    | TyBase b -> string_of_base_type b
-    | TyFun (t1, t2, t3, t4) ->
-        let s1 = Printf.sprintf (match t1 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t1 in
-        let s2 = Printf.sprintf (match t2 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t2 in
-        let s3 = Printf.sprintf (match t3 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t3 in
-        let s4 = Printf.sprintf (match t4 with TyFun _ -> "(%s)" | _ -> "%s") @@ string_of_type t4 in
-        Printf.sprintf "%s/%s -> %s/%s" s1 s2 s3 s4
-    | TyDyn -> "?"
-  in
-  string_of_type t
+let rec pp_print_type ppf = function
+  | TyParam p -> fprintf ppf "'a%d" p
+  (* | TyParam tp -> string_of_typaram tp *)
+  | TyVar x -> fprintf ppf "'x%d" x
+  | TyBase b -> pp_print_basety ppf b
+  | TyFun (t1, t2, t3, t4) ->
+      (* TODO: can be better *)
+      let with_paren ppf t = match t with
+        | TyFun _ -> fprintf ppf "(%a)" pp_print_type t
+        | _ -> fprintf ppf "%a" pp_print_type t
+      in
+      fprintf ppf "%a/%a -> %a/%a"
+        with_paren t1
+        with_paren t2
+        with_paren t3
+        with_paren t4
+  | TyDyn -> pp_print_string ppf "?"
 
-let string_of_const = function
-  | ConstBool b -> string_of_bool b
-  | ConstInt i -> string_of_int i
-  | ConstUnit -> "()"
+let pp_print_const ppf = function
+  | ConstBool b -> pp_print_bool ppf b
+  | ConstInt i -> pp_print_int ppf i
+  | ConstUnit -> pp_print_string ppf "()"
 
-(* string -> ty -> string *)
-let string_of_type_annot x t = Printf.sprintf "(%s: %s)" x @@ string_of_type t
+let pp_print_type_annot ppf (x, t) =
+  fprintf ppf "(%s: %a)" x pp_print_type t
 
-(* ty -> string *)
-let string_of_answer_type_annot t = Printf.sprintf "^%s" @@ string_of_type t
+let pp_print_answer_type_annot ppf t =
+  fprintf ppf "^%a" pp_print_type t
 
 let pp_print_constr ppf = function
-  | CEqual (u1, u2) -> fprintf ppf "%s=%s" (string_of_type u1) (string_of_type u2)
-  | CConsistent (u1, u2) -> fprintf ppf "%s~%s" (string_of_type u1) (string_of_type u2)
+  | CEqual (u1, u2) -> fprintf ppf "%a=%a" pp_print_type u1 pp_print_type u2
+  | CConsistent (u1, u2) -> fprintf ppf "%a~%a" pp_print_type u1 pp_print_type u2
 
 let pp_print_constraints ppf c =
   pp_print_list pp_print_constr ppf (Constraints.to_list c) ~pp_sep:pp_sep
 
 let pp_print_subst ppf (x, t) =
-  fprintf ppf "x%a=%a" pp_print_int x pp_print_string (string_of_type t)
+  fprintf ppf "x%a=%a" pp_print_int x pp_print_type t
 
 let pp_print_substitutions ppf s =
   pp_print_list pp_print_subst ppf s ~pp_sep:pp_sep
@@ -74,24 +83,41 @@ let pp_print_substitutions ppf s =
 module GSR = struct
   open GSR
 
-  (* exp -> string *)
-  let rec string_of_exp = function
+  let rec pp_print_exp ppf = function
     (* TODO print typarms correctly *)
-    | Var id -> id
-    | Const c -> string_of_const c
+    | Var id -> pp_print_string ppf id
+    | Const c -> pp_print_const ppf c
     | BinOp (op, e1, e2) ->
-        Printf.sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
+        fprintf ppf "%a %a %a"
+          pp_print_exp e1
+          pp_print_binop op
+          pp_print_exp e2
     | Fun (g, x, x_t, e) ->
-        Printf.sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
-    | App (x, y) -> Printf.sprintf "((%s) (%s))" (string_of_exp x) (string_of_exp y)
+        fprintf ppf "fun%a %a -> %a"
+          pp_print_answer_type_annot g
+          pp_print_type_annot (x, x_t)
+          pp_print_exp e
+    | App (e1, e2) ->
+        fprintf ppf "((%a) (%a))"
+          pp_print_exp e1
+          pp_print_exp e2
     | Shift (k, k_t, e) ->
-        Printf.sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
+        fprintf ppf "shift %a -> (%a)"
+          pp_print_type_annot (k, k_t)
+          pp_print_exp e
     | Reset (e, u) ->
-        Printf.sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
+        fprintf ppf "reset%a (%a)"
+          pp_print_answer_type_annot u
+          pp_print_exp e
     | If (e1, e2, e3) ->
-        Printf.sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
+        fprintf ppf "if %a then %a else %a"
+          pp_print_exp e1
+          pp_print_exp e2
+          pp_print_exp e3
     | Consq (e1, e2) ->
-        Printf.sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
+        fprintf ppf "%a; %a"
+          pp_print_exp e1
+          pp_print_exp e2
 end
 
 module CSR = struct
@@ -99,24 +125,45 @@ module CSR = struct
   open Eval
 
   (* TODO print correctly *)
-  let rec string_of_exp = function
-    | Var id -> id
-    | Const c -> string_of_const c
+  let rec pp_print_exp ppf = function
+    | Var id -> pp_print_string ppf id
+    | Const c -> pp_print_const ppf c
     | BinOp (op, e1, e2) ->
-        Printf.sprintf "%s %s %s" (string_of_exp e1) (string_of_binop op) (string_of_exp e2)
+        fprintf ppf "%a %a %a"
+          pp_print_exp e1
+          pp_print_binop op
+          pp_print_exp e2
     | Fun (g, x, x_t, e) ->
-        Printf.sprintf "fun%s %s -> %s" (string_of_answer_type_annot g) (string_of_type_annot x x_t) (string_of_exp e)
-    | App (x, y) -> Printf.sprintf "(%s) (%s)" (string_of_exp x) (string_of_exp y)
+        fprintf ppf "fun%a %a -> %a"
+          pp_print_answer_type_annot g
+          pp_print_type_annot (x, x_t)
+          pp_print_exp e
+    | App (e1, e2) ->
+        fprintf ppf "((%a) (%a))"
+          pp_print_exp e1
+          pp_print_exp e2
     | Shift (k, k_t, e) ->
-        Printf.sprintf "shift %s -> (%s)" (string_of_type_annot k k_t) (string_of_exp e)
+        fprintf ppf "shift %a -> (%a)"
+          pp_print_type_annot (k, k_t)
+          pp_print_exp e
     | Reset (e, u) ->
-        Printf.sprintf "reset%s (%s)" (string_of_answer_type_annot u) (string_of_exp e)
+        fprintf ppf "reset%a (%a)"
+          pp_print_answer_type_annot u
+          pp_print_exp e
     | If (e1, e2, e3) ->
-        Printf.sprintf "if %s then %s else %s" (string_of_exp e1) (string_of_exp e2) (string_of_exp e3)
+        fprintf ppf "if %a then %a else %a"
+          pp_print_exp e1
+          pp_print_exp e2
+          pp_print_exp e3
     | Consq (e1, e2) ->
-        Printf.sprintf "%s; %s" (string_of_exp e1) (string_of_exp e2)
+        fprintf ppf "%a; %a"
+          pp_print_exp e1
+          pp_print_exp e2
     | Cast (e, u1, u2) ->
-        Printf.sprintf "(%s : %s => %s)" (string_of_exp e) (string_of_type u1) (string_of_type u2)
+        fprintf ppf "(%a : %a => %a)"
+          pp_print_exp e
+          pp_print_type u1
+          pp_print_type u2
 
   let pp_print_tag ppf = function
     | P p -> fprintf ppf "'a%d" p

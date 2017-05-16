@@ -9,7 +9,7 @@ let _ =
           begin match e with
           | Syntax.GSR.Exp e ->
             let _, u, _, _ = Typing.GSR.infer empty e @@ Typing.GSR.fresh_tyvar () in
-            let s = Pp.string_of_type u in
+            let s = Format.fprintf Format.str_formatter "%a" Pp.pp_print_type u; Format.flush_str_formatter () in
             object%js
               val isSucceeded = Js._true
               val result = Js.string s

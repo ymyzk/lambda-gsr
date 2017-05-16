@@ -8,25 +8,23 @@ let rec read_eval_print lexeme dirs =
   let read_eval_print = read_eval_print lexeme in
   fprintf std_formatter "# @?";
   flush stdout;
+  ignore @@ flush_str_formatter ();
   try
     let env = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main lexeme in
+    let ppf = if dirs.debug then std_formatter else str_formatter in
     begin match e with
     | Syntax.GSR.Exp e ->
         let u_b = Typing.GSR.fresh_tyvar () in
-        if dirs.debug then begin
-          prerr_endline "Input:";
-          prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
-          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
-        end;
+        fprintf ppf "Input:\n e: %a\n Uβ: %a\n"
+          Pp.GSR.pp_print_exp e
+          Pp.pp_print_type u_b;
         let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~formatter:(if dirs.debug then Some std_formatter else None) in
-        if dirs.debug then begin
-          prerr_endline "GSR:";
-          prerr_endline @@ " e: " ^ Pp.GSR.string_of_exp e;
-          prerr_endline @@ " U: " ^ Pp.string_of_type u;
-          prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a;
-          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
-        end;
+        fprintf ppf "GSR:\n e: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
+          Pp.GSR.pp_print_exp e
+          Pp.pp_print_type u
+          Pp.pp_print_type u_a
+          Pp.pp_print_type u_b;
         let f, u', u_a' = Typing.GSR.translate env e u_b in
         (* Translation must not change types *)
         assert (u = u');
@@ -34,15 +32,15 @@ let rec read_eval_print lexeme dirs =
         let u'', u_a'' = Typing.CSR.type_of_exp env f u_b in
         assert (u' = u'');
         assert (u_a' = u_a'');
-        if dirs.debug then begin
-          prerr_endline "CSR:";
-          prerr_endline @@ " f: " ^ Pp.CSR.string_of_exp f;
-          prerr_endline @@ " U: " ^ Pp.string_of_type u';
-          prerr_endline @@ " Uα: " ^ Pp.string_of_type u_a';
-          prerr_endline @@ " Uβ: " ^ Pp.string_of_type u_b
-        end;
+        fprintf ppf "CSR:\n f: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
+          Pp.CSR.pp_print_exp f
+          Pp.pp_print_type u'
+          Pp.pp_print_type u_a'
+          Pp.pp_print_type u_b;
         let v = Eval.eval f env (fun x -> x) in
-        fprintf std_formatter "- : %s = %a\n" (Pp.string_of_type u) Pp.CSR.pp_print_value v;
+        fprintf std_formatter "- : %a = %a\n"
+          Pp.pp_print_type u
+          Pp.CSR.pp_print_value v;
         read_eval_print dirs
     | Syntax.GSR.Directive d ->
         begin match d with
