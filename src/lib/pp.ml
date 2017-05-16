@@ -169,7 +169,7 @@ module CSR = struct
     | B -> pp_print_string ppf "bool"
     | I -> pp_print_string ppf "int"
     | U -> pp_print_string ppf "unit"
-    | Ar -> pp_print_string ppf "*/* -> */*"
+    | Ar -> pp_print_string ppf "?/? -> ?/?"
 
   let rec pp_print_value ppf = function
     | IntV i -> pp_print_int ppf i
