@@ -2,6 +2,9 @@ open Constraints
 open Syntax
 
 exception Type_error of string
+exception Type_error2 of
+  ((Format.formatter -> ty -> unit) -> ty -> (Format.formatter -> ty -> unit) -> ty -> unit, Format.formatter, unit) Pervasives.format
+  * ty * ty
 exception Unification_error of
   ((Format.formatter -> constr -> unit) -> constr -> unit, Format.formatter, unit) Pervasives.format
   * constr
@@ -462,13 +465,15 @@ let infer ?(formatter=None) env e b =
         let ui1, ui2, ui = type_of_binop op in
         let f1, u1, u1_a = translate env e1 u_b in
         let f2, u2, u2_a = translate env e2 u1_a in
-        begin match is_consistent u1 ui1, is_consistent u2 ui2 with
-          | true, true -> CSR.BinOp (op, (cast f1 u1 ui1), (cast f2 u2 ui2)), ui, u2_a
-(*
-          | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
-          | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
-*)
-        end
+        if is_consistent u1 ui1 then
+          if is_consistent u2 ui2 then
+            CSR.BinOp (op, (cast f1 u1 ui1), (cast f2 u2 ui2)), ui, u2_a
+          else
+            raise @@ Type_error2 (
+              "binop: the second argument has type %a but is expected to have type which is consistent with %a", u2, ui2)
+        else
+          raise @@ Type_error2 (
+            "binop: the first argument has type %a but is expected to have type which is consistent with %a", u1, ui1)
     | Fun (u_g, x, u_1, e) ->
         let u_a = u_b in
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
@@ -567,13 +572,15 @@ module CSR = struct
         let ui1, ui2, ui = type_of_binop op in
         let u1, ua1 = type_of_exp env f1 ub in
         let u2, ua2 = type_of_exp env f2 ua1 in
-        begin match u1 = ui1, u2 = ui2 with
-          | true, true -> ui, ua2
-(*
-          | false, _ -> raise @@ Type_error (Printf.sprintf "binop: the first argument has type %s but is expected to have type %s" (Pp.string_of_type u1) (Pp.string_of_type ui1))
-          | _, false -> raise @@ Type_error (Printf.sprintf "binop: the second argument has type %s but is expected to have type %s" (Pp.string_of_type u2) (Pp.string_of_type ui2))
-*)
-        end
+        if u1 = ui1 then
+          if u2 = ui2 then
+            ui, ua2
+          else
+            raise @@ Type_error2 (
+              "binop: the second argument has type %a but is expected to have type %a", u2, ui2)
+        else
+          raise @@ Type_error2 (
+            "binop: the first argument has type %a but is expected to have type %a", u1, ui1)
     | Fun (ug, x, u1, f) ->
         let ua = ub in
         let u2, ub = type_of_exp (Environment.add x u1 env) f ug in

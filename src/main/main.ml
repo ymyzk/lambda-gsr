@@ -58,6 +58,10 @@ let rec read_eval_print lexeme dirs =
       prerr_endline @@ Printf.sprintf "Parser.Error";
   | Typing.Type_error message ->
       prerr_endline @@ Printf.sprintf "Type_error: %s" message;
+  | Typing.Type_error2 (message, u1, u2) ->
+      fprintf std_formatter ("Type_error2: " ^^ message ^^ "\n")
+        Pp.pp_print_type u1
+        Pp.pp_print_type u2;
   | Typing.Unification_error (message, c) ->
       fprintf std_formatter ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
   | Eval.Eval_error message ->
