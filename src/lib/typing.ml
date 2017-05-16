@@ -422,7 +422,7 @@ let unify constraints : substitutions =
           raise @@ Unification_error ("cannot unify: %a", constr)
     end
   in
-  unify @@ Constraints.map (fun x -> x) constraints
+  unify @@ Constraints.to_list constraints
 
 let infer ?(formatter=None) env e b =
   let u, a, c = generate_constraints env e b in
