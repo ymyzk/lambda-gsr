@@ -15,6 +15,8 @@ type ty =
   | TyFun of ty * ty * ty * ty
   | TyDyn
 
+let tyDynFun = TyFun (TyDyn, TyDyn, TyDyn, TyDyn)
+
 (* Syntax *)
 
 type id = string
@@ -85,4 +87,14 @@ module CSR = struct
     | If of exp * exp * exp
     | Consq of exp * exp
     | Cast of exp * ty * ty
+
+type tag = P of typaram | I | B | U | Ar
+
+type value =
+  | IntV of int
+  | BoolV of bool
+  | UnitV
+  | FunV of (value -> cont -> value)
+  | Tagged of tag * value
+and cont = value -> value
 end

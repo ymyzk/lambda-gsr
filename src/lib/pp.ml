@@ -122,7 +122,6 @@ end
 
 module CSR = struct
   open CSR
-  open Eval
 
   (* TODO print correctly *)
   let rec pp_print_exp ppf = function
