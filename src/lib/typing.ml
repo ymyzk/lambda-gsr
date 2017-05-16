@@ -1,7 +1,14 @@
 open Constraints
 open Syntax
 
+(* Fatal errors *)
+exception Type_fatal_error of string
+
+(* Soft errors *)
 exception Type_error of string
+exception Type_error1 of
+  ((Format.formatter -> ty -> unit) -> ty -> unit, Format.formatter, unit) Pervasives.format
+  * ty
 exception Type_error2 of
   ((Format.formatter -> ty -> unit) -> ty -> (Format.formatter -> ty -> unit) -> ty -> unit, Format.formatter, unit) Pervasives.format
   * ty * ty
@@ -25,22 +32,29 @@ let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type 
 let domf = function
   | TyFun (u, _, _, _) -> u
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match"
+  | _ -> raise @@ Type_fatal_error "domf: failed to match"
 
 let codc = function
   | TyFun (_, u, _, _) -> u
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match"
+  | _ -> raise @@ Type_fatal_error "codc: failed to match"
 
 let domc = function
   | TyFun (_, _, u, _) -> u
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match"
+  | _ -> raise @@ Type_fatal_error "domc: failed to match"
 
 let codf = function
   | TyFun (_, _, _, u) -> u
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match"
+  | _ -> raise @@ Type_fatal_error "codf: failed to match"
+
+let rec meet u1 u2 = match u1, u2 with
+  | u1, u2 when u1 = u2 -> u1
+  | u, TyDyn | TyDyn, u -> u
+  | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
+      TyFun (meet u11 u21, meet u12 u22, meet u13 u23, meet u14 u24)
+  | _ -> raise @@ Type_fatal_error "meet: failed to match"
 
 let rec is_consistent u1 u2 = match u1, u2 with
   | TyParam p1, TyParam p2 when p1 = p2 -> true
@@ -53,13 +67,6 @@ let rec is_consistent u1 u2 = match u1, u2 with
       is_consistent u13 u23 &&
       is_consistent u14 u24
   | _ -> false
-
-let rec meet u1 u2 = match u1, u2 with
-  | u1, u2 when u1 = u2 -> u1
-  | u, TyDyn | TyDyn, u -> u
-  | TyFun (u11, u12, u13, u14), TyFun (u21, u22, u23, u24) ->
-      TyFun (meet u11 u21, meet u12 u22, meet u13 u23, meet u14 u24)
-  | _ -> raise @@ Type_error "failed to meet"
 
 (* Base type, type variables, or type parameters *)
 let is_bvp_type = function
@@ -214,7 +221,7 @@ module GSR = struct
         x1, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (u1, _, _, _) -> u1, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: domf(%a) is undefined", u)
 
   (* domc = *)
   let generate_constraints_domc_eq = function
@@ -223,7 +230,7 @@ module GSR = struct
         x3, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, _, u3, _) -> u3, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: domc(%a) is undefined", u)
 
   (* codc = *)
   let generate_constraints_codc_eq = function
@@ -232,7 +239,7 @@ module GSR = struct
         x2, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, u2, _, _) -> u2, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: codc(%a) is undefined", u)
 
   (* codf = *)
   let generate_constraints_codf_eq = function
@@ -241,7 +248,7 @@ module GSR = struct
         x4, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2, x3, x4)))
     | TyFun (_, _, _, u4) -> u4, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: codf(%a) is undefined", u)
 
   (* domf ~ *)
   let generate_constraints_domf_con u1 u2 = match u1 with
@@ -252,7 +259,7 @@ module GSR = struct
     | TyFun (u11, _, _, _) ->
         Constraints.singleton @@ CConsistent (u11, u2)
     | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: domf(%a) is undefined", u)
 
   (* codf ~ *)
   let generate_constraints_codf_con u1 u2 = match u1 with
@@ -263,7 +270,7 @@ module GSR = struct
     | TyFun (_, _, _, u14) ->
         Constraints.singleton @@ CConsistent (u14, u2)
     | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
-    | _ -> raise @@ Type_error "error"
+    | _ as u -> raise @@ Type_error1 ("failed to generate constraints: codf(%a) is undefined", u)
 
   let rec generate_constraints_meet u1 u2 = match u1, u2 with
     | TyBase b1, TyBase b2 when b1 = b2 -> TyBase b1, Constraints.empty
@@ -280,7 +287,7 @@ module GSR = struct
         let c = Constraints.union c c3 in
         let c = Constraints.union c c4 in
         TyFun (u1, u2, u3, u4), c
-    | _ -> raise @@ Type_error "error: generate_constraints_meet"
+    | _ -> raise @@ Type_error2 ("failed to generate constraints: meet(%a, %a) is undefined", u1, u2)
 
   let generate_constraints env e b =
     let rec generate_constraints env e b =
@@ -450,13 +457,14 @@ let infer ?(formatter=None) env e b =
 
   let cast f u1 u2 = if u1 = u2 then f else CSR.Cast (f, u1, u2)
 
+  (* if translate raises an error, it must be some problem in inference *)
   let rec translate env e u_b = match e with
     | Var x -> begin
         try
           let u = Environment.find x env in
           CSR.Var x, u, u_b
         with Not_found ->
-          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+          raise @@ Type_fatal_error (Printf.sprintf "variable '%s' not found in the environment" x)
       end
     | Const c ->
         let u = type_of_const c in
@@ -469,11 +477,9 @@ let infer ?(formatter=None) env e b =
           if is_consistent u2 ui2 then
             CSR.BinOp (op, (cast f1 u1 ui1), (cast f2 u2 ui2)), ui, u2_a
           else
-            raise @@ Type_error2 (
-              "binop: the second argument has type %a but is expected to have type which is consistent with %a", u2, ui2)
+            raise @@ Type_fatal_error "binop: the second argument"
         else
-          raise @@ Type_error2 (
-            "binop: the first argument has type %a but is expected to have type which is consistent with %a", u1, ui1)
+          raise @@ Type_fatal_error "binop: the first argument"
     | Fun (u_g, x, u_1, e) ->
         let u_a = u_b in
         let f, u_2, u_b = translate (Environment.add x u_1 env) e u_g in
@@ -487,7 +493,7 @@ let infer ?(formatter=None) env e b =
                        (cast f2 u2 (domf u1))),
               domc u1,
               codc u1
-          | _ -> raise @@ Type_error "app: not consistent"
+          | _ -> raise @@ Type_fatal_error "app: not consistent"
         end
     | Shift (k, u_s, e) ->
         let f, u_d, u_d' = translate (Environment.add k u_s env) e u_b in
@@ -508,7 +514,7 @@ let infer ?(formatter=None) env e b =
               end,
               domf u_s,
               domc u_s
-          | _ -> raise @@ Type_error "shift: not consistent"
+          | _ -> raise @@ Type_fatal_error "shift: not consistent"
         end
     | Reset (e, u) ->
         let u_a = u_b in
@@ -516,15 +522,14 @@ let infer ?(formatter=None) env e b =
         if is_consistent u_b u_b' then
           CSR.Reset ((cast f u_b u_b'), u), u, u_a
         else
-          raise @@ Type_error "reset: not consistent"
+          raise @@ Type_fatal_error "reset: not consistent"
     | If (e1, e2, e3) ->
         let f1, u1, u_d = translate env e1 u_b in
         let f2, u2, u_a2 = translate env e2 u_d in
         let f3, u3, u_a3 = translate env e3 u_d in
         let u_a = meet u_a2 u_a3 in
         let u = meet u2 u3 in
-        let k2 = fresh_var () in
-        let k3 = fresh_var () in
+        let k2, k3 = fresh_var (), fresh_var () in
         let cast_e k' f' u' u_a' =
           let f' = cast f' u' u in
           if u_a = u_a' then
@@ -543,7 +548,7 @@ let infer ?(formatter=None) env e b =
             cast_e k3 f3 u3 u_a3
           ), u, u_a
         else
-          raise @@ Type_error "if: not consistent"
+          raise @@ Type_fatal_error "if: not consistent"
     | Consq (e1, e2) ->
         let u_g = u_b in
         let f1, u1, u_b = translate env e1 u_g in
@@ -551,7 +556,7 @@ let infer ?(formatter=None) env e b =
         if is_consistent u1 @@ TyBase TyUnit then
           CSR.Consq ((cast f1 u1 (TyBase TyUnit)), f2), u2, u_a
         else
-          raise @@ Type_error "consq: not consistent"
+          raise @@ Type_fatal_error "consq: not consistent"
 end
 
 module CSR = struct
@@ -563,7 +568,7 @@ module CSR = struct
           let u = Environment.find x env in
           u, ub
         with Not_found ->
-          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+          raise @@ Type_fatal_error (Printf.sprintf "variable '%s' not found in the environment" x)
       end
     | Const c ->
         let u = type_of_const c in
@@ -576,11 +581,9 @@ module CSR = struct
           if u2 = ui2 then
             ui, ua2
           else
-            raise @@ Type_error2 (
-              "binop: the second argument has type %a but is expected to have type %a", u2, ui2)
+            raise @@ Type_fatal_error "binop: the second argument type"
         else
-          raise @@ Type_error2 (
-            "binop: the first argument has type %a but is expected to have type %a", u1, ui1)
+          raise @@ Type_fatal_error "binop: the first argument type"
     | Fun (ug, x, u1, f) ->
         let ua = ub in
         let u2, ub = type_of_exp (Environment.add x u1 env) f ug in
@@ -591,13 +594,13 @@ module CSR = struct
         let u2, ub = type_of_exp env f2 ug in
         begin match u1, (codf u1) = ub, (domf u1) = u2 with
           | TyFun _, true, true -> domc u1, codc u1
-          | _ -> raise @@ Type_error "app"
+          | _ -> raise @@ Type_fatal_error "app"
         end
     | Shift (k, us, f) ->
         let ud, ud' = type_of_exp (Environment.add k us env) f ub in
         begin match us, (codc us) = (codf us), ud = ud' with
           | TyFun _, true, true -> domf us, domc us
-          | _ -> raise @@ Type_error "shift"
+          | _ -> raise @@ Type_fatal_error "shift"
         end
     | Reset (f, u) ->
         let ua = ub in
@@ -605,14 +608,14 @@ module CSR = struct
         if ub = ub' then
           u, ua
         else
-          raise @@ Type_error "reset"
+          raise @@ Type_fatal_error "reset"
     | If (f1, f2, f3) ->
         let u1, ud = type_of_exp env f1 ub in
         let u2, ua2 = type_of_exp env f2 ud in
         let u3, ua3 = type_of_exp env f3 ud in
         begin match u1 = TyBase TyBool, u2 = u3, ua2 = ua3 with
           | true, true, true -> u2, ua2
-          | _ -> raise @@ Type_error "if"
+          | _ -> raise @@ Type_fatal_error "if"
         end
     | Consq (f1, f2) ->
         let ug = ub in
@@ -621,11 +624,11 @@ module CSR = struct
         if u1 = TyBase TyUnit then
           u2, ua
         else
-          raise @@ Type_error "consq"
+          raise @@ Type_fatal_error "consq"
     | Cast (f, u1, u2) ->
         let u1', ua = type_of_exp env f ub in
         begin match u1 = u1', is_consistent u1 u2 with
           | true, true -> u2, ua
-          | _ -> raise @@ Type_error "cast"
+          | _ -> raise @@ Type_fatal_error "cast"
         end
 end

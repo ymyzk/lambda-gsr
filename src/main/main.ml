@@ -58,6 +58,9 @@ let rec read_eval_print lexeme dirs =
       prerr_endline @@ Printf.sprintf "Parser.Error";
   | Typing.Type_error message ->
       prerr_endline @@ Printf.sprintf "Type_error: %s" message;
+  | Typing.Type_error1 (message, u1) ->
+      fprintf std_formatter ("Type_error1: " ^^ message ^^ "\n")
+        Pp.pp_print_type u1;
   | Typing.Type_error2 (message, u1, u2) ->
       fprintf std_formatter ("Type_error2: " ^^ message ^^ "\n")
         Pp.pp_print_type u1
@@ -68,6 +71,9 @@ let rec read_eval_print lexeme dirs =
       prerr_endline @@ Printf.sprintf "Eval_error: %s" message;
   | Eval.Blame (value, message) ->
       fprintf std_formatter "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
+  (* Fatal errors *)
+  | Typing.Type_fatal_error message ->
+      fprintf std_formatter "FATAL: Type_fatal_error: %s" message
   end;
   read_eval_print !dirs
 
