@@ -34,4 +34,5 @@ parser.conflicts
 parser.ml
 parser.mli
 parser.output
+src/main/main
 tests/test
