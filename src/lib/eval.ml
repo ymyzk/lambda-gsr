@@ -119,5 +119,5 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
       end
   | _ -> raise @@ Eval_fatal_error "cast is not implemented"
 and castk k (u12, u13) (u22, u23) = fun v ->
-  let v' = cast v u12 u22 in
-  cast (k v') u23 u13
+  let v' = cast v u22 u12 in
+  cast (k v') u13 u23
