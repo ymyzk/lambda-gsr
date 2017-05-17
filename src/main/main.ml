@@ -16,6 +16,7 @@ let rec read_eval_print lexeme dirs =
     let ppf = if !dirs.debug then std_formatter else str_formatter in
     begin match e with
     | Syntax.GSR.Exp e ->
+        (* Inference *)
         let u_b = Typing.GSR.fresh_tyvar () in
         fprintf ppf "Input:\n e: %a\n Uβ: %a\n"
           Pp.GSR.pp_print_exp e
@@ -26,6 +27,7 @@ let rec read_eval_print lexeme dirs =
           Pp.pp_print_type u
           Pp.pp_print_type u_a
           Pp.pp_print_type u_b;
+        (* Translation *)
         let f, u', u_a' = Typing.GSR.translate env e u_b in
         (* Translation must not change types *)
         assert (u = u');
@@ -38,6 +40,7 @@ let rec read_eval_print lexeme dirs =
           Pp.pp_print_type u'
           Pp.pp_print_type u_a'
           Pp.pp_print_type u_b;
+        (* Evaluation *)
         let v = Eval.eval f env (fun x -> x) in
         fprintf std_formatter "- : %a = %a\n"
           Pp.pp_print_type u
