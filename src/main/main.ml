@@ -5,15 +5,18 @@ type directives = {
 }
 
 let rec read_eval_print lexeme dirs =
+  (* Used in all modes *)
+  let ppf_std = std_formatter in
+  (* Used in debug mode *)
+  let ppf = if dirs.debug then std_formatter else str_formatter in
   let dirs = ref dirs in
   let read_eval_print = read_eval_print lexeme in
-  fprintf std_formatter "# @?";
+  fprintf ppf_std "# @?";
   flush stdout;
   ignore @@ flush_str_formatter ();
   begin try
     let env = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main lexeme in
-    let ppf = if !dirs.debug then std_formatter else str_formatter in
     begin match e with
     | Syntax.GSR.Exp e ->
         (* Inference *)
@@ -27,6 +30,12 @@ let rec read_eval_print lexeme dirs =
           Pp.pp_print_type u
           Pp.pp_print_type u_a
           Pp.pp_print_type u_b;
+        if u_a <> u_b then begin
+          fprintf ppf_std "Warning: This expression is not pure.\n";
+          fprintf ppf_std "Answer types are %a and %a.\n"
+            Pp.pp_print_type u_a
+            Pp.pp_print_type u_b
+        end;
         (* Translation *)
         let f, u', u_a' = Typing.GSR.translate env e u_b in
         (* Translation must not change types *)
@@ -42,42 +51,42 @@ let rec read_eval_print lexeme dirs =
           Pp.pp_print_type u_b;
         (* Evaluation *)
         let v = Eval.eval f env (fun x -> x) in
-        fprintf std_formatter "- : %a = %a\n"
+        fprintf ppf_std "- : %a = %a\n"
           Pp.pp_print_type u
           Pp.CSR.pp_print_value v
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
-              prerr_endline @@ "debug mode " ^ if b then "enabled" else "disabled";
+              fprintf ppf_std @@ "debug mode " ^^ (if b then "enabled" else "disabled") ^^ "\n";
               dirs := { debug = b }
           | _ ->
-              prerr_endline "unsupported directive"
+              fprintf ppf_std "unsupported directive"
         end
     end
   with
   | Failure message ->
-      prerr_endline @@ Printf.sprintf "Failure: %s" message;
+      fprintf ppf_std "Failure: %s" message;
   (* Soft errors *)
   | Parser.Error -> (* Menhir *)
-      prerr_endline @@ Printf.sprintf "Parser.Error";
+      fprintf ppf_std "Parser.Error";
   | Typing.Type_error message ->
-      prerr_endline @@ Printf.sprintf "Type_error: %s" message;
+      fprintf ppf "Type_error: %s" message;
   | Typing.Type_error1 (message, u1) ->
-      fprintf std_formatter ("Type_error1: " ^^ message ^^ "\n")
+      fprintf ppf_std ("Type_error1: " ^^ message ^^ "\n")
         Pp.pp_print_type u1;
   | Typing.Type_error2 (message, u1, u2) ->
-      fprintf std_formatter ("Type_error2: " ^^ message ^^ "\n")
+      fprintf ppf_std ("Type_error2: " ^^ message ^^ "\n")
         Pp.pp_print_type u1
         Pp.pp_print_type u2;
   | Typing.Unification_error (message, c) ->
-      fprintf std_formatter ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
+      fprintf ppf_std ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
   | Eval.Blame (value, message) ->
-      fprintf std_formatter "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
+      fprintf ppf_std "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
   (* Fatal errors *)
   | Typing.Type_fatal_error message ->
-      fprintf std_formatter "FATAL: Type_fatal_error: %s" message
+      fprintf ppf_std "FATAL: Type_fatal_error: %s" message
   | Eval.Eval_fatal_error message ->
-      fprintf std_formatter "FATAL: Eval_fatal_error: %s" message
+      fprintf ppf_std "FATAL: Eval_fatal_error: %s" message
   end;
   read_eval_print !dirs
 
