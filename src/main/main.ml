@@ -54,6 +54,7 @@ let rec read_eval_print lexeme dirs =
   with
   | Failure message ->
       prerr_endline @@ Printf.sprintf "Failure: %s" message;
+  (* Soft errors *)
   | Parser.Error -> (* Menhir *)
       prerr_endline @@ Printf.sprintf "Parser.Error";
   | Typing.Type_error message ->
@@ -67,13 +68,13 @@ let rec read_eval_print lexeme dirs =
         Pp.pp_print_type u2;
   | Typing.Unification_error (message, c) ->
       fprintf std_formatter ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
-  | Eval.Eval_error message ->
-      prerr_endline @@ Printf.sprintf "Eval_error: %s" message;
   | Eval.Blame (value, message) ->
       fprintf std_formatter "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
   (* Fatal errors *)
   | Typing.Type_fatal_error message ->
       fprintf std_formatter "FATAL: Type_fatal_error: %s" message
+  | Eval.Eval_fatal_error message ->
+      fprintf std_formatter "FATAL: Eval_fatal_error: %s" message
   end;
   read_eval_print !dirs
 

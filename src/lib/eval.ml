@@ -1,8 +1,6 @@
 open Syntax
 open Syntax.CSR
 
-exception Eval_error of string
-
 (* Hard errors *)
 exception Eval_fatal_error of string
 (* Soft errors *)
