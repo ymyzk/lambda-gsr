@@ -38,12 +38,23 @@ let rec eval exp env cont = match exp with
       cont @@ FunV (fun v -> fun c -> eval f (Environment.add x v env) c)
   | App (f1, f2) ->
       eval f1 env @@
+        fun v1 -> begin
+          match v1 with
+            | FunV f ->
+                eval f2 env @@
+                fun v2 ->
+                  f v2 cont
+            | _ -> raise @@ Eval_fatal_error "app: application of non procedure value"
+        end
+(*
+      eval f1 env @@
         fun v1 -> eval f2 env @@
         fun v2 -> begin
           match v1 with
             | FunV f -> f v2 cont
             | _ -> raise @@ Eval_fatal_error "app: application of non procedure value"
           end
+*)
   | Shift (k, _, f) ->
       let env' = Environment.add k (FunV (fun v -> fun c -> c (cont v))) env in
       eval f env' @@ fun x -> x
@@ -74,7 +85,7 @@ and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
       FunV (fun b ->
         let a = cast b u21 u11 in
         fun k ->
-          let k' = castk k (u22, u23) (u12, u13) in
+          let k' = castk k (u23, u22) (u13, u12) in
           begin
             match v with
               | FunV f -> cast (f a k') u14 u24
