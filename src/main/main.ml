@@ -6,12 +6,18 @@ type directives = {
 
 let rec read_eval_print lexeme dirs =
   (* Used in all modes *)
-  let ppf_std = std_formatter in
+  let print f = fprintf std_formatter f in
   (* Used in debug mode *)
-  let ppf = if dirs.debug then std_formatter else str_formatter in
+  let print_debug f =
+    if dirs.debug then
+      print f
+    else
+      let empty = make_formatter (fun _ _ _ -> ()) (fun _ -> ()) in
+      fprintf empty f
+  in
   let dirs = ref dirs in
   let read_eval_print = read_eval_print lexeme in
-  fprintf ppf_std "# @?";
+  print "# @?";
   flush stdout;
   ignore @@ flush_str_formatter ();
   begin try
@@ -21,18 +27,36 @@ let rec read_eval_print lexeme dirs =
     | Syntax.GSR.Exp e ->
         (* Inference *)
         let u_b = Typing.GSR.fresh_tyvar () in
-        fprintf ppf "Input:\n e: %a\n Uβ: %a\n"
+        print_debug "Input:\n e: %a\n Uβ: %a\n"
           Pp.GSR.pp_print_exp e
           Pp.pp_print_type u_b;
-        let e, u, u_a, u_b = Typing.GSR.infer env e u_b ~formatter:(if !dirs.debug then Some std_formatter else None) in
-        fprintf ppf "GSR:\n e: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
+        (* Constraints generation *)
+        let u, u_a, c = Typing.GSR.generate_constraints env e u_b in
+        print_debug "Constraints: %a\n" Pp.pp_print_constraints c;
+        let s = Typing.GSR.unify c in
+        print_debug "Substitutions: %a\n" Pp.pp_print_substitutions s;
+        let e = Typing.subst_exp_substitutions e s in
+        let u = Typing.subst_type_substitutions u s in
+        let u_a = Typing.subst_type_substitutions u_a s in
+        let u_b = Typing.subst_type_substitutions u_b s in
+        print_debug "After Substitution:\n";
+        print_debug " e: %a\n" Pp.GSR.pp_print_exp e;
+        print_debug " U: %a\n" Pp.pp_print_type u;
+        print_debug " Uα: %a\n" Pp.pp_print_type u_a;
+        print_debug " Uβ: %a\n" Pp.pp_print_type u_b;
+        let tvm = Typing.GSR.TyVarMap.empty in
+        let tvm, e = Typing.GSR.subst_exp_tyvars tvm e in
+        let tvm, u = Typing.GSR.subst_tyvars tvm u in
+        let tvm, u_a = Typing.GSR.subst_tyvars tvm u_a in
+        let _, u_b = Typing.GSR.subst_tyvars tvm u_b in
+        print_debug "GSR:\n e: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
           Pp.GSR.pp_print_exp e
           Pp.pp_print_type u
           Pp.pp_print_type u_a
           Pp.pp_print_type u_b;
         if u_a <> u_b then begin
-          fprintf ppf_std "Warning: This expression is not pure.\n";
-          fprintf ppf_std "Answer types are %a and %a.\n"
+          print "Warning: This expression is not pure.\n";
+          print "Answer types are %a and %a.\n"
             Pp.pp_print_type u_a
             Pp.pp_print_type u_b
         end;
@@ -44,49 +68,49 @@ let rec read_eval_print lexeme dirs =
         let u'', u_a'' = Typing.CSR.type_of_exp env f u_b in
         assert (u' = u'');
         assert (u_a' = u_a'');
-        fprintf ppf "CSR:\n f: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
+        print_debug "CSR:\n f: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
           Pp.CSR.pp_print_exp f
           Pp.pp_print_type u'
           Pp.pp_print_type u_a'
           Pp.pp_print_type u_b;
         (* Evaluation *)
         let v = Eval.eval f env (fun x -> x) in
-        fprintf ppf_std "- : %a = %a\n"
+        print "- : %a = %a\n"
           Pp.pp_print_type u
           Pp.CSR.pp_print_value v
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
-              fprintf ppf_std @@ "debug mode " ^^ (if b then "enabled" else "disabled") ^^ "\n";
+              print @@ "debug mode " ^^ (if b then "enabled" else "disabled") ^^ "\n";
               dirs := { debug = b }
           | _ ->
-              fprintf ppf_std "unsupported directive"
+              print "unsupported directive"
         end
     end
   with
   | Failure message ->
-      fprintf ppf_std "Failure: %s" message;
+      print "Failure: %s" message;
   (* Soft errors *)
   | Parser.Error -> (* Menhir *)
-      fprintf ppf_std "Parser.Error";
+      print "Parser.Error";
   | Typing.Type_error message ->
-      fprintf ppf "Type_error: %s" message;
+      print "Type_error: %s" message;
   | Typing.Type_error1 (message, u1) ->
-      fprintf ppf_std ("Type_error1: " ^^ message ^^ "\n")
+      print ("Type_error1: " ^^ message ^^ "\n")
         Pp.pp_print_type u1;
   | Typing.Type_error2 (message, u1, u2) ->
-      fprintf ppf_std ("Type_error2: " ^^ message ^^ "\n")
+      print ("Type_error2: " ^^ message ^^ "\n")
         Pp.pp_print_type u1
         Pp.pp_print_type u2;
   | Typing.Unification_error (message, c) ->
-      fprintf ppf_std ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
+      print ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
   | Eval.Blame (value, message) ->
-      fprintf ppf_std "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
+      print "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
   (* Fatal errors *)
   | Typing.Type_fatal_error message ->
-      fprintf ppf_std "FATAL: Type_fatal_error: %s" message
+      print "FATAL: Type_fatal_error: %s" message
   | Eval.Eval_fatal_error message ->
-      fprintf ppf_std "FATAL: Eval_fatal_error: %s" message
+      print "FATAL: Eval_fatal_error: %s" message
   end;
   read_eval_print !dirs
 

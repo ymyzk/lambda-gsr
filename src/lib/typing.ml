@@ -424,37 +424,6 @@ let unify constraints : substitutions =
   in
   unify @@ Constraints.to_list constraints
 
-let infer ?(formatter=None) env e b =
-  let u, a, c = generate_constraints env e b in
-  begin match formatter with
-    | Some formatter -> Format.fprintf formatter "Constraints: %a\n" Pp.pp_print_constraints c
-    | _ -> ()
-  end;
-  let s = unify c in
-  begin match formatter with
-    | Some formatter -> Format.fprintf formatter "Substitutions: %a\n" Pp.pp_print_substitutions s
-    | _ -> ()
-  end;
-  let e = subst_exp_substitutions e s in
-  let u = subst_type_substitutions u s in
-  let a = subst_type_substitutions a s in
-  let b = subst_type_substitutions b s in
-  begin match formatter with
-    | Some formatter ->
-        Format.fprintf formatter "After Substitution:\n";
-        Format.fprintf formatter " e: %a\n" Pp.GSR.pp_print_exp e;
-        Format.fprintf formatter " U: %a\n" Pp.pp_print_type u;
-        Format.fprintf formatter " Uα: %a\n" Pp.pp_print_type a;
-        Format.fprintf formatter " Uβ: %a\n" Pp.pp_print_type b
-    | _ -> ()
-  end;
-  let tvm = TyVarMap.empty in
-  let tvm, e = subst_exp_tyvars tvm e in
-  let tvm, u = subst_tyvars tvm u in
-  let tvm, a = subst_tyvars tvm a in
-  let _, b = subst_tyvars tvm b in
-  e, u, a, b
-
   let cast f u1 u2 = if u1 = u2 then f else CSR.Cast (f, u1, u2)
 
   (* if translate raises an error, it must be some problem in inference *)

@@ -2,11 +2,12 @@ let _ =
   Js.export "GsrInfer" @@
     object%js
       method infer x = begin
-        let empty = Syntax.Environment.empty in
+(*         let empty = Syntax.Environment.empty in *)
         try
           let x = Printf.sprintf "%s;;" @@ Js.to_string x in
           let e = Parser.toplevel Lexer.main @@ Lexing.from_string x in
           begin match e with
+(*
           | Syntax.GSR.Exp e ->
             let _, u, _, _ = Typing.GSR.infer empty e @@ Typing.GSR.fresh_tyvar () in
             let s = Format.fprintf Format.str_formatter "%a" Pp.pp_print_type u; Format.flush_str_formatter () in
@@ -14,6 +15,7 @@ let _ =
               val isSucceeded = Js._true
               val result = Js.string s
             end
+*)
           | _ ->
             object%js
               val isSucceeded = Js._false
