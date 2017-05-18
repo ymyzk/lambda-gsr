@@ -89,7 +89,8 @@ let rec read_eval_print lexbuf dirs =
     end
   with
   | Failure message ->
-      print "Failure: %s" message;
+      print "Failure: %s\n" message;
+      Lexing.flush_input lexbuf
   (* Soft errors *)
   | Parser.Error -> (* Menhir *)
       print "Parser.Error";
