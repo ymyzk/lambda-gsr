@@ -4,6 +4,13 @@ type directives = {
   debug: bool
 }
 
+let pp_print_flag ppf f =
+  pp_print_string ppf begin
+    match f with
+    | true -> "enabled"
+    | false -> "disabled"
+  end
+
 let rec read_eval_print lexbuf dirs =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
@@ -81,10 +88,10 @@ let rec read_eval_print lexbuf dirs =
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
-              print @@ "debug mode " ^^ (if b then "enabled" else "disabled") ^^ "\n";
+              print "debug mode %a\n" pp_print_flag b;
               dirs := { debug = b }
           | _ ->
-              print "unsupported directive"
+              print "unsupported directive\n"
         end
     end
   with
@@ -97,23 +104,25 @@ let rec read_eval_print lexbuf dirs =
       print "Parser.Error: unexpected token %s\n" token;
       Lexing.flush_input lexbuf
   | Typing.Type_error message ->
-      print "Type_error: %s" message;
+      print "Type_error: %s\n" message
   | Typing.Type_error1 (message, u1) ->
       print ("Type_error1: " ^^ message ^^ "\n")
         Pp.pp_print_type u1;
   | Typing.Type_error2 (message, u1, u2) ->
       print ("Type_error2: " ^^ message ^^ "\n")
         Pp.pp_print_type u1
-        Pp.pp_print_type u2;
+        Pp.pp_print_type u2
   | Typing.Unification_error (message, c) ->
-      print ("Unification_error: " ^^ message ^^ "\n") Pp.pp_print_constr c;
+      print ("Unification_error: " ^^ message ^^ "\n")
+        Pp.pp_print_constr c
   | Eval.Blame (value, message) ->
-      print "Blame: %a => %s\n" Pp.CSR.pp_print_value value message;
+      print "Blame: %a => %s\n"
+        Pp.CSR.pp_print_value value message
   (* Fatal errors *)
   | Typing.Type_fatal_error message ->
-      print "FATAL: Type_fatal_error: %s" message
+      print "FATAL: Type_fatal_error: %s\n" message
   | Eval.Eval_fatal_error message ->
-      print "FATAL: Eval_fatal_error: %s" message
+      print "FATAL: Eval_fatal_error: %s\n" message
   end;
   read_eval_print !dirs
 
