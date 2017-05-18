@@ -4,7 +4,7 @@ type directives = {
   debug: bool
 }
 
-let rec read_eval_print lexeme dirs =
+let rec read_eval_print lexbuf dirs =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
   (* Used in debug mode *)
@@ -16,13 +16,13 @@ let rec read_eval_print lexeme dirs =
       fprintf empty f
   in
   let dirs = ref dirs in
-  let read_eval_print = read_eval_print lexeme in
+  let read_eval_print = read_eval_print lexbuf in
   print "# @?";
   flush stdout;
   ignore @@ flush_str_formatter ();
   begin try
     let env = Syntax.Environment.empty in
-    let e = Parser.toplevel Lexer.main lexeme in
+    let e = Parser.toplevel Lexer.main lexbuf in
     begin match e with
     | Syntax.GSR.Exp e ->
         (* Inference *)
@@ -115,5 +115,5 @@ let rec read_eval_print lexeme dirs =
   read_eval_print !dirs
 
 let () =
-  let lexeme = Lexing.from_channel stdin in
-  read_eval_print lexeme { debug = false }
+  let lexbuf = Lexing.from_channel stdin in
+  read_eval_print lexbuf { debug = false }
