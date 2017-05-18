@@ -93,7 +93,9 @@ let rec read_eval_print lexbuf dirs =
       Lexing.flush_input lexbuf
   (* Soft errors *)
   | Parser.Error -> (* Menhir *)
-      print "Parser.Error";
+      let token = Lexing.lexeme lexbuf in
+      print "Parser.Error: unexpected token %s\n" token;
+      Lexing.flush_input lexbuf
   | Typing.Type_error message ->
       print "Type_error: %s" message;
   | Typing.Type_error1 (message, u1) ->
