@@ -29,6 +29,7 @@ let rec read_eval_print lexbuf dirs =
   ignore @@ flush_str_formatter ();
   begin try
     let env = Syntax.Environment.empty in
+    let tyenv = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main lexbuf in
     begin match e with
     | Syntax.GSR.Exp e ->
@@ -38,7 +39,7 @@ let rec read_eval_print lexbuf dirs =
           Pp.GSR.pp_print_exp e
           Pp.pp_print_type u_b;
         (* Constraints generation *)
-        let u, u_a, c = Typing.GSR.generate_constraints env e u_b in
+        let u, u_a, c = Typing.GSR.generate_constraints tyenv e u_b in
         print_debug "Constraints: %a\n" Pp.pp_print_constraints c;
         let s = Typing.GSR.unify c in
         print_debug "Substitutions: %a\n" Pp.pp_print_substitutions s;
@@ -68,11 +69,11 @@ let rec read_eval_print lexbuf dirs =
             Pp.pp_print_type u_b
         end;
         (* Translation *)
-        let f, u', u_a' = Typing.GSR.translate env e u_b in
+        let f, u', u_a' = Typing.GSR.translate tyenv e u_b in
         (* Translation must not change types *)
         assert (u = u');
         assert (u_a = u_a');
-        let u'', u_a'' = Typing.CSR.type_of_exp env f u_b in
+        let u'', u_a'' = Typing.CSR.type_of_exp tyenv f u_b in
         assert (u' = u'');
         assert (u_a' = u_a'');
         print_debug "CSR:\n f: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
