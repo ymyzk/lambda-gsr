@@ -72,7 +72,14 @@ let rec eval exp env cont = match exp with
         end
   | Cast (f, u1, u2) ->
       eval f env @@ fun v -> cont @@ cast v u1 u2
-and cast v u1 u2 = match u1, u2 with (* v: u1 => u2 *)
+and cast v u1 u2 = (* v: u1 => u2 *)
+(* For debug
+  Format.fprintf Format.std_formatter "CAST: (%a): %a => %a\n"
+    Pp.CSR.pp_print_value v
+    Pp.pp_print_type u1
+    Pp.pp_print_type u2;
+*)
+  match u1, u2 with
   (* Base *)
   | TyParam p1, TyParam p2 when p1 = p2 -> v
   | TyBase b1, TyBase b2 when b1 = b2 -> v
