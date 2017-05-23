@@ -54,7 +54,6 @@ SimpleExpr :
   | FALSE { Const (ConstBool false) }
   | LPAREN RPAREN { Const ConstUnit }
   | ID { Var $1 }
-  | LPAREN Expr COLON COLON Type RPAREN { App (Fun (Typing.GSR.fresh_tyvar (), "x", $5, Var "x"), $2) }
   | LPAREN Expr RPAREN { $2 }
 
 Type :
