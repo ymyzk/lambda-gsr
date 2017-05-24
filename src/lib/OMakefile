@@ -91,6 +91,7 @@ FILES[] =
     lexer
     parser
     pp
+    stdlib
     syntax
     typing
     utils

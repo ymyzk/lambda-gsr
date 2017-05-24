@@ -11,7 +11,7 @@ let pp_print_flag ppf f =
     | false -> "disabled"
   end
 
-let rec read_eval_print lexbuf dirs =
+let rec read_eval_print lexbuf env tyenv dirs =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
   (* Used in debug mode *)
@@ -23,13 +23,10 @@ let rec read_eval_print lexbuf dirs =
       fprintf empty f
   in
   let dirs = ref dirs in
-  let read_eval_print = read_eval_print lexbuf in
   print "# @?";
   flush stdout;
   ignore @@ flush_str_formatter ();
   begin try
-    let env = Syntax.Environment.empty in
-    let tyenv = Syntax.Environment.empty in
     let e = Parser.toplevel Lexer.main lexbuf in
     begin match e with
     | Syntax.GSR.Exp e ->
@@ -125,8 +122,10 @@ let rec read_eval_print lexbuf dirs =
   | Eval.Eval_fatal_error message ->
       print "FATAL: Eval_fatal_error: %s\n" message
   end;
-  read_eval_print !dirs
+  read_eval_print lexbuf env tyenv !dirs
 
 let () =
   let lexbuf = Lexing.from_channel stdin in
-  read_eval_print lexbuf { debug = false }
+  let env = Stdlib.env in
+  let tyenv = Stdlib.tyenv in
+  read_eval_print lexbuf env tyenv { debug = false }
