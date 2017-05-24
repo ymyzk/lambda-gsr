@@ -60,7 +60,7 @@ OCAMLPACKS[] =
 #
 # Include path
 #
-OCAMLINCLUDES += ../src/lib
+OCAMLINCLUDES += ../lib
 
 #
 # Compile native or byte code?
@@ -99,7 +99,7 @@ FILES[] =
     typing_test
 
 PROGRAM = test
-OCAML_LIBS += ../src/lib/itgl
+OCAML_LIBS += ../lib/itgl
 # OCAML_CLIBS +=
 # OCAML_OTHER_LIBS +=
 # OCAML_LIB_FLAGS +=

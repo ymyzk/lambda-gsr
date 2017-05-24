@@ -9,7 +9,7 @@ An interpreter of the implicitly and gradually typed language with shift and res
 ## Build instructions
 ```shell
 omake
-./src/main/main
+./main/main
 ```
 
 ### Unit tests
