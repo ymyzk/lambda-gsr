@@ -88,6 +88,18 @@ module CSR = struct
     | Consq of exp * exp
     | Cast of exp * ty * ty
 
+  let map f_ty f_exp = function
+    | Var _ as e -> e
+    | Const _ as e -> e
+    | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)
+    | Fun (g, x1, x1_t, e) -> Fun (f_ty g, x1, f_ty x1_t, f_exp e)
+    | App (e1, e2) -> App (f_exp e1, f_exp e2)
+    | Shift (k, k_t, e) -> Shift (k, f_ty k_t, f_exp e)
+    | Reset (e, u) -> Reset (f_exp e, f_ty u)
+    | If (e1, e2, e3) -> If (f_exp e1, f_exp e2, f_exp e3)
+    | Consq (e1, e2) -> Consq (f_exp e1, f_exp e2)
+    | Cast (e, u1, u2) -> Cast (f_exp e, f_ty u1, f_ty u2)
+
 type tag = P of typaram | I | B | U | Ar
 
 type value =

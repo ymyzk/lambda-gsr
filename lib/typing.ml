@@ -600,4 +600,11 @@ module CSR = struct
           | true, true -> u2, ua
           | _ -> raise @@ Type_fatal_error "cast"
         end
+
+  let param_to_dyn_in_type = function
+    | TyParam _ -> TyDyn
+    | _ as u -> u
+
+  let rec params_to_dyn_in_exp f =
+    map param_to_dyn_in_type params_to_dyn_in_exp f
 end

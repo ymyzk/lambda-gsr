@@ -1,7 +1,8 @@
 open Format
 
 type directives = {
-  debug: bool
+  debug: bool;
+  params_to_dyn: bool;
 }
 
 let pp_print_flag ppf f =
@@ -10,6 +11,12 @@ let pp_print_flag ppf f =
     | true -> "enabled"
     | false -> "disabled"
   end
+
+let params_to_dyn f u ua ub =
+  Typing.CSR.params_to_dyn_in_exp f,
+  Typing.CSR.param_to_dyn_in_type u,
+  Typing.CSR.param_to_dyn_in_type ua,
+  Typing.CSR.param_to_dyn_in_type ub
 
 let rec read_eval_print lexbuf env tyenv dirs =
   (* Used in all modes *)
@@ -78,16 +85,31 @@ let rec read_eval_print lexbuf env tyenv dirs =
           Pp.pp_print_type u'
           Pp.pp_print_type u_a'
           Pp.pp_print_type u_b;
+        (* Params -> Dyn *)
+        let f, u' = if !dirs.params_to_dyn then
+          let f, u', u_a', u_b = params_to_dyn f u' u_a' u_b in
+          print_debug "CSR (Params to ?):\n f: %a\n U: %a\n Uα: %a\n Uβ: %a\n"
+            Pp.CSR.pp_print_exp f
+            Pp.pp_print_type u'
+            Pp.pp_print_type u_a'
+            Pp.pp_print_type u_b;
+          f, u'
+        else
+          f, u'
+        in
         (* Evaluation *)
         let v = Eval.eval f env (fun x -> x) in
         print "- : %a = %a\n"
-          Pp.pp_print_type u
+          Pp.pp_print_type u'
           Pp.CSR.pp_print_value v
     | Syntax.GSR.Directive d ->
         begin match d with
           | Syntax.GSR.BoolDir ("debug", b) ->
               print "debug mode %a\n" pp_print_flag b;
-              dirs := { debug = b }
+              dirs := { !dirs with debug = b }
+          | Syntax.GSR.BoolDir ("params_to_dyn", b) ->
+              print "params_to_dyn (EXPERIMENTAL) %a\n" pp_print_flag b;
+              dirs := { !dirs with params_to_dyn = b }
           | _ ->
               print "unsupported directive\n"
         end
@@ -128,4 +150,4 @@ let () =
   let lexbuf = Lexing.from_channel stdin in
   let env = Stdlib.env in
   let tyenv = Stdlib.tyenv in
-  read_eval_print lexbuf env tyenv { debug = false }
+  read_eval_print lexbuf env tyenv { debug = false; params_to_dyn = false }
